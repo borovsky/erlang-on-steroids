@@ -39,7 +39,8 @@
 %% Description:
 %%--------------------------------------------------------------------
 do(#mod{parsed_header = Headers} = A) ->
-    io:format("Method: ~p~n", A#mod.method).
+    io:format("Method: ~p~n", A#mod.method),
+    {response, 200, "ok"}.
 
 %%====================================================================
 %% Internal functions

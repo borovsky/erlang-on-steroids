@@ -1,0 +1,3 @@
+#!/bin/sh
+
+erl -pa lib/*/ebin -s my_start start

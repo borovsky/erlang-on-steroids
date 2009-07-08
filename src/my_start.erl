@@ -33,8 +33,8 @@
 start() ->
     start([inets]).
 
-start([_T]) ->
-    io:format("Starting...~n"),
+start(A) ->
+    io:format("Starting: ~p...~n", [A]),
     application:load(myapp),
     start_webserver(inets).
 

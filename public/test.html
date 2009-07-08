@@ -1,1 +1,172 @@
-test
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="application/xhtml+xml;
+                                             charset=utf-8" />
+    <link href="/stylesheets/style.css" media="screen" rel="stylesheet" type="text/css" />
+
+    <title>Test</title>
+  </head>
+  <body>
+    <h1>Test page with simple form</h1>
+    <div class="active-scaffold">
+      <div class="update-view conference_registrations-view view">
+        <form method="post" id="conference_registrations-update-1-form" class="update" action="/ru/users/1/conference_registrations/1"><div style="margin: 0pt; padding: 0pt;"><input type="hidden" value="put" name="_method"/><input type="hidden" value="802a5779b67af9666405cd4f4352a322cb064bef" name="authenticity_token"/></div>
+
+          <h4>Регистрация на конференцию LVEE 2009</h4>
+
+          <ol class="form">
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_proposition_1">Ваши предложения</label>
+                </dt>
+                <dd>
+                  <textarea rows="20" name="record[proposition]" id="record_proposition_1" cols="40" class="proposition-input text-input" autocomplete="off"></textarea>
+                  <span class="description">Так как свободное ПО создаётся сообществом с привлечением множества добровольцев, расскажите, пожалуйста, что Вы могли бы привнести в нашу встречу. Пусть это будет доклад или менее формальный рассказ в рамках круглого стола (workshop) о внедрении, использовании или разработке свободного ПО вами или в вашей организации. Если вы собираетесь сделать доклад или организовать семинар на конференции, укажите тему предлагаемого вами доклада, а также вышлите на <a href="mailto:d.kostiuk@lvee.org">d.kostiuk@lvee.org</a> тезисы выступления.</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_quantity_1">Количество участников</label>
+                </dt>
+                <dd>
+                  <input type="text" value="1" size="30" name="record[quantity]" id="record_quantity_1" class="quantity-input text-input" autocomplete="off"/>
+                  <span class="description">Сколько людей поедет с вами на конференцию (включая вас)?</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_days_1">Дни участия</label>
+                </dt>
+                <dd>
+                  <div><ul><li><input type="checkbox" value="Thursday" name="record[days][]" id="record_days_" checked="checked"/>четверг</li>
+                      <li><input type="checkbox" value="Friday" name="record[days][]" id="record_days_" checked="checked"/>пятница</li>
+                      <li><input type="checkbox" value="Saturday" name="record[days][]" id="record_days_" checked="checked"/>суббота</li>
+                      <li><input type="checkbox" value="Sunday" name="record[days][]" id="record_days_" checked="checked"/>воскресенье</li></ul><input type="hidden" value="" name="record[days][]" id="record_days_"/></div>
+                  <span class="description">В какие дни вы планируете присутствовать?</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_meeting_1">Требуется ли встреча?</label>
+                </dt>
+                <dd>
+                  <input type="text" value="нет" size="30" name="record[meeting]" id="record_meeting_1" class="meeting-input text-input" autocomplete="off"/>
+                  <span class="description">Требуется ли вас встречать?</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_phone_1">Ваш контактный телефон</label>
+                </dt>
+                <dd>
+                  <input type="text" value="+375 29 270 41 34" size="30" name="record[phone]" id="record_phone_1" class="phone-input text-input" autocomplete="off"/>
+                  <span class="description">Телефон для связи с вами во время конференции (с кодом страны)</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_residence_1">Расселение</label>
+                </dt>
+                <dd>
+                  <input type="text" value="Дмитрий Костюк" size="30" name="record[residence]" id="record_residence_1" class="residence-input text-input" autocomplete="off"/>
+                  <span class="description">С кем из участников вас поселить в комнате?</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_floor_1">Готовы ли вы спать на полу?</label>
+                </dt>
+                <dd>
+                  <div><input type="checkbox" value="1" name="record[floor]" id="record_floor"/><input type="hidden" value="0" name="record[floor]"/></div>
+                  <span class="description">Готовы ли вы на следующие условия: оргвзнос уменьшается; спальное место не предоставляется; питание сохраняется? Можно спать в спальнике на полу в домиках.</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_transport_to_1">Транспорт на конференцию</label>
+                </dt>
+                <dd>
+                  <select name="record[transport_to]" id="record_transport_to"><option value="">Выберите</option>
+                    <option selected="selected" value="bus_minsk">Маршрутка из Минска</option>
+                    <option value="bus_grodno">Маршрутка из Гродно</option>
+                    <option value="independent">Самостоятельно</option></select>
+                  <span class="description">Как вы планируете добираться до конференции?</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_transport_from_1">Транспорт с конференции</label>
+                </dt>
+                <dd>
+                  <select name="record[transport_from]" id="record_transport_from"><option value="">Выберите</option>
+                    <option selected="selected" value="bus_minsk">Маршрутка в Минск</option>
+                    <option value="bus_grodno">Маршрутка в Гродно</option>
+                    <option value="independent">Самостоятельно</option></select>
+                  <span class="description">Как вы планируете добираться с конференции?</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_food_1">Предпочтения в диете</label>
+                </dt>
+                <dd>
+                  <input type="text" value="нет" size="30" name="record[food]" id="record_food_1" class="food-input text-input" autocomplete="off"/>
+                  <span class="description">Ваши предпочтения в еде (вегетарианство и др.)?</span>
+                </dd>
+            </dl>  </li>
+            <li class="form-element ">
+
+              <dl class="">
+                <dt>
+                  <label for="record_tshirt_1">Размер футболки</label>
+                </dt>
+                <dd>
+                  <div><select name="record[tshirt][]" id="record_tshirt_"><option value="M">M</option>
+                      <option value="L">L</option>
+                      <option value="XL">XL</option>
+                      <option selected="selected" value="XXL">XXL</option></select></div>
+                  <span class="description">Размер футболки</span>
+                </dd>
+            </dl>  </li>
+          </ol>
+
+          <p class="form-footer">
+            <input type="submit" value="Обновить" name="commit" class="submit"/>
+            <a class="cancel" href="/ru/users/1/conference_registrations/list?id=1">Отменить</a>
+          </p>
+
+        </form>
+      </div>
+    </div>
+    <h1>Test page with multipart form</h1>
+    <form method="post" enctype="multipart/form-data"
+          action="/ru/users/1/upload_avator">
+      <div style="margin: 0pt; padding: 0pt;"><input type="hidden" value="802a5779b67af9666405cd4f4352a322cb064bef" name="authenticity_token"/></div>
+      <label for="user_avator">Новое фото:</label>
+      <input type="hidden" name="user[avator_temp]" id="user_avator_temp"/><input type="file" size="30" name="user[avator]" id="user_avator"/>
+      <input type="submit" value="Закачать" name="commit"/>
+    </form>
+
+  </body>
+</html>

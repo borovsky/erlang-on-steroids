@@ -1,0 +1,24 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="application/xhtml+xml;
+                                             charset=utf-8" />
+    <link href="/stylesheets/style.css" media="screen" rel="stylesheet" type="text/css" />
+
+    <title>Test</title>
+  </head>
+  <body>
+    <h1>Test page with multipart form</h1>
+    <form method="post" enctype="multipart/form-data"
+          action="/ru/users/1/upload_avator">
+      <div style="margin: 0pt; padding: 0pt;"><input type="hidden" value="802a5779b67af9666405cd4f4352a322cb064bef" name="authenticity_token"/></div>
+      <label for="user_avator">Новое фото:</label>
+      <input type="hidden" name="user[avator_temp]"
+      id="user_avator_temp"/><input type="file" size="30"
+      name="user[avator]" id="user_avator"/>
+
+      <input type="submit" value="Upload file" name="commit"/>
+    </form>
+
+  </body>
+</html>

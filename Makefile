@@ -10,5 +10,5 @@ clean:
 	rm -rf ./test/ebin/*.*
 
 test: compile
-	erl -noshell -pa ebin -pa test/ebin -s erunit_suite run  -s init stop
+	run_test -dir test -logdir test/logs
 

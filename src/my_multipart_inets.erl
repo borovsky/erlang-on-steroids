@@ -33,7 +33,8 @@
 
 get_multipart(Body, Boundary) ->
     Regexp = "--" ++ Boundary ++ "((\r\n)|(\-\-\r\n))",
-    {ok, Split} = regexp:split(Body, Regexp),
+    BodyBin = list_to_binary(Body),
+    Split = re:split(BodyBin, Regexp, [{return, binary}, group,trim]),
     retrive_data(Split).
 
 %%====================================================================
@@ -48,8 +49,10 @@ retrive_data([]) ->
     [];
 retrive_data([[] | Rest]) ->
     retrive_data(Rest);
-retrive_data([Part | Rest]) ->
-    {match, [Header, Data]} = re:run(Part, "^(.*)\r\n\r\n(.*)\r\n\$", [{capture, [1, 2], list}, dotall]),
+retrive_data([[<<>> | _] | Rest]) ->
+    retrive_data(Rest);
+retrive_data([[Part | _] | Rest]) ->
+    {match, [Header, Data]} = re:run(Part, "^(.*)\r\n\r\n(.*)\r\n\$", [{capture, [1, 2], binary}, dotall]),
     Headers = re:split(Header, "\r\n", [{return,list}]),
     ProcessedHeaders = parse_headers(Headers),
     [process_part(ProcessedHeaders, Data) | retrive_data(Rest)].
@@ -62,7 +65,7 @@ process_part(Header, Data) ->
     {value, {"content-disposition", _, Params}} = lists:keysearch("content-disposition", 1, Header),
     {value, {"name", Name}} = lists:keysearch("name", 1, Params),
     case lists:keysearch("filename", 1, Params) of
-        false -> {Name, Data};
+        false -> {Name, binary_to_list(Data)};
         {value, {_, FileName}} ->
             ContentType = case lists:keysearch("content-type", 1, Header) of
                               false -> "application/octet-stream";

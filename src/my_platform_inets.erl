@@ -41,9 +41,6 @@
 %% Description: processes request from inets
 %%--------------------------------------------------------------------
 do(#mod{} = A) ->
-    io:format("Request: ~p~n", [A]),
-    io:format("Request data: ~p~n", [A#mod.data]),
-    
     case is_request_processed(A#mod.data) of
         true ->    
             {proceed, A#mod.data};

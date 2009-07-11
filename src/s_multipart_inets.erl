@@ -10,6 +10,7 @@
 %%--------------------------------------------------------------------
 %% Include files
 %%--------------------------------------------------------------------
+-include("s_types.hrl").
 
 %%--------------------------------------------------------------------
 %% External exports
@@ -31,11 +32,17 @@
 %% Description:
 %%--------------------------------------------------------------------
 
+-spec(get_multipart/2 :: (string(), string()) -> list(request_parameter())).
 get_multipart(Body, Boundary) ->
     Regexp = "--" ++ Boundary ++ "((\r\n)|(\-\-\r\n))",
     BodyBin = list_to_binary(Body),
     Split = re:split(BodyBin, Regexp, [{return, binary}, group,trim]),
     retrive_data(Split).
+
+%%====================================================================
+%% Internal types
+%%====================================================================
+-type(parsed_http_header() :: {string(), string(), list({string(), string()})}).
 
 %%====================================================================
 %% Internal functions
@@ -45,6 +52,7 @@ get_multipart(Body, Boundary) ->
 %% Function: Generates parameters from multiparts
 %% Description:
 %%--------------------------------------------------------------------
+-spec(retrive_data/1 :: (list(list(binary()))) -> list(request_parameter())).
 retrive_data([]) ->
     [];
 retrive_data([[] | Rest]) ->
@@ -61,6 +69,7 @@ retrive_data([[Part | _] | Rest]) ->
 %% Function: Processes one part
 %% Description:
 %%--------------------------------------------------------------------
+-spec(process_part/2 :: (list(parsed_http_header()), binary()) -> request_parameter()).
 process_part(Header, Data) ->
     {value, {"content-disposition", _, Params}} = lists:keysearch("content-disposition", 1, Header),
     {value, {"name", Name}} = lists:keysearch("name", 1, Params),
@@ -76,6 +85,7 @@ process_part(Header, Data) ->
                     {content_type, ContentType}]}
     end.
 
+-spec(save_file/1 :: (binary()) -> ok | error).
 save_file(Data) ->
     FileName = "/tmp/" ++ next_file_name(),
 
@@ -83,13 +93,15 @@ save_file(Data) ->
     case Ret of 
         ok -> FileName;
         {error, Reason} ->
-            io:format("Error while saving file to ~s: ~p ~n", [FileName, Reason])
+            io:format("Error while saving file to ~s: ~p ~n", [FileName, Reason]),
+            error
         end.
 
+-spec(next_file_name/0 :: () -> string()).
 next_file_name() ->
     "1".
 
-
+-spec(sanitize_file_name/1 :: (string()) -> string()).
 sanitize_file_name(Name) ->
     Name.
 
@@ -97,11 +109,13 @@ sanitize_file_name(Name) ->
 %% Function: Parses HTTP-like headers to more useful form
 %% Description:
 %%--------------------------------------------------------------------
+-spec(parse_headers/1 :: ([binary()]) -> list(parsed_http_header())).
 parse_headers([]) -> 
     [];
 parse_headers([Line|Rest]) -> 
     [parse_header(Line)|parse_headers(Rest)].
 
+-spec(parse_header/1 :: (string()) -> parsed_http_header()).
 parse_header(Header) ->
     {match, [Name, Value]} = re:run(Header, "^(.*):(.*)\$", [{capture, [1, 2], list}]),
     [HeaderValue | Params] = lists:map(fun string:strip/1, re:split(Value, ";", [{return, list}])),

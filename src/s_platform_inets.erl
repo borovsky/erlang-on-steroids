@@ -10,6 +10,7 @@
 %%--------------------------------------------------------------------
 %% Include files
 %%--------------------------------------------------------------------
+-include("s_types.hrl").
 -include_lib("inets/src/httpd.hrl").
 
 %%--------------------------------------------------------------------
@@ -40,6 +41,7 @@
 %% Function: do
 %% Description: processes request from inets
 %%--------------------------------------------------------------------
+-spec(do/1 :: (#mod{}) -> tuple()).
 do(#mod{} = A) ->
     case is_request_processed(A#mod.data) of
         true ->    
@@ -82,6 +84,8 @@ parse_get_args(Info) ->
     QueryString = get_querystring(Info#mod.request_uri),
     parse_query_string(QueryString).
 
+-spec(parse_post_args/1 :: (#mod{}) -> 
+             list(tuple())).
 parse_post_args(Info) ->
     BoundaryStruct = fetch_boundary(Info),
     case BoundaryStruct of
@@ -91,7 +95,9 @@ parse_post_args(Info) ->
             s_multipart_inets:get_multipart(Info#mod.entity_body, Boundary)
     end.
 
--spec(fetch_boundary/1 :: (list()) -> {simple, string()} | {multipart, string()}).	     
+
+
+-spec(fetch_boundary/1 :: (#mod{parsed_header::maybe_improper_list()}) -> {'multipart',_} | {'simple',_}).
 fetch_boundary(Data) ->
     ContentTypeSearch = lists:keysearch("content-type", 1, Data#mod.parsed_header),
     ContentType = case ContentTypeSearch of
@@ -105,7 +111,7 @@ fetch_boundary(Data) ->
             {simple, Data#mod.entity_body}
     end.
 
-
+-spec(do_process_request/1 :: (#mod{}) -> tuple()).
 do_process_request(Info) ->
     GetParams = parse_get_args(Info),
     PostParams = parse_post_args(Info),

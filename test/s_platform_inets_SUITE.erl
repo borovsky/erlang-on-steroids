@@ -14,27 +14,32 @@ init_per_testcase(_TestCase, Config) ->
 end_per_testcase(_TestCase, _Config) ->
     ok.
 
+%%--------------------------------------------------------------------
+%% Function: all() -> GroupsAndTestCases | {skip,Reason}
+%% GroupsAndTestCases = [{group,GroupName} | TestCase]
+%% GroupName = atom()
+%% TestCase = atom()
+%% Reason = term()
+%%--------------------------------------------------------------------
 all() -> 
-   [check_get_to_root_with_no_params,
-    check_get_with_no_params,
-    check_get_with_empty_params,
-    check_get_with_one_simple_parameter,
-    check_get_with_two_simple_parameters,
-    check_get_with_plus_parameter,
-    check_get_with_encoded_parameter,
-   
-    check_simple_post_empty,
-    check_simple_post_with_one_paramerer,
-    check_simple_post_with_two_paramerers,
-    check_simple_post_with_plus_paramerer,
-    check_simple_post_with_quoted_paramerer,
-
-    check_empty_multipart_post,
-    check_multipart_post_with_one_parameter,
-    check_multipart_post_with_two_parameters,
-    check_multipart_post_with_non_trivial_parameters,
-    check_multipart_post_with_file_parameters
-   ].
+    [check_get_to_root_with_no_params,
+     check_get_with_no_params,
+     check_get_with_empty_params,
+     check_get_with_one_simple_parameter,
+     check_get_with_two_simple_parameters,
+     check_get_with_plus_parameter,
+     check_get_with_encoded_parameter,
+     check_simple_post_empty,
+     check_simple_post_with_one_paramerer,
+     check_simple_post_with_two_paramerers,
+     check_simple_post_with_plus_paramerer,
+     check_simple_post_with_quoted_paramerer,
+     check_empty_multipart_post,
+     check_multipart_post_with_one_parameter,
+     check_multipart_post_with_two_parameters,
+     check_multipart_post_with_non_trivial_parameters,
+     check_multipart_post_with_file_parameters
+    ].
 
 
 already_processed_request() ->
@@ -118,8 +123,7 @@ param(Key, List) ->
         {value, {_, Value}} -> Value;
         _ -> false
     end.
-
-            
+           
 
 check_multipart_post_request(Result) ->
     PostBody = gen_multipart_post(Result),

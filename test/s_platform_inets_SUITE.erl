@@ -1,4 +1,4 @@
--module(my_platform_inets_SUITE).
+-module(s_platform_inets_SUITE).
 
 -author("alex.borovsky@gmail.com").
 
@@ -39,11 +39,11 @@ all() ->
 
 already_processed_request() ->
     RequestData=[{response,{already_sent,200,10360}},{mime_type,"text/html"}],
-    my_platform_inets:is_request_processed(RequestData).
+    s_platform_inets:is_request_processed(RequestData).
 
 not_processed_request() ->
     RequestData=[{status,{500,none,"httpd_file: Can't openpublic/"}}],
-    my_platform_inets:is_request_processed(RequestData).
+    s_platform_inets:is_request_processed(RequestData).
 
 parse_get_request(RequestPath) ->
     Request = {mod,{init_data,{53597,"127.0.0.1"},"localhost"},
@@ -55,7 +55,7 @@ parse_get_request(RequestPath) ->
                 {"accept","*/*"},
                 {"user-agent","Wget/1.11.4"}],
                [],false},
-    my_platform_inets:parse_get_args(Request).
+    s_platform_inets:parse_get_args(Request).
 
 check_get_request(Params, Uri) ->
     Params =  parse_get_request(Uri).
@@ -84,7 +84,7 @@ gen_post_request(Encoding, PostBody) ->
     
 
 parse_post_request(Request) ->
-    my_platform_inets:parse_post_args(Request).
+    s_platform_inets:parse_post_args(Request).
 
 check_post_request(Result, Encoding, PostBody) ->
     Request = gen_post_request(Encoding, PostBody),

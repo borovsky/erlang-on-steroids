@@ -1,11 +1,11 @@
 %%%-------------------------------------------------------------------
-%%% File    : e_platform_inets.erl
+%%% File    : s_platform_inets.erl
 %%% Author  : Alexander Borovsky <alex@partizan.home>
 %%% Description : 
 %%%
 %%% Created : 24 Jun 2009 by Alexander Borovsky <alex@partizan.home>
 %%%-------------------------------------------------------------------
--module(my_platform_inets).
+-module(s_platform_inets).
 
 %%--------------------------------------------------------------------
 %% Include files
@@ -55,13 +55,14 @@ end.
 %% Function: is_request_processed
 %% Description: Checks, if request already processed
 %%--------------------------------------------------------------------
--spec(is_request_processed(string()) ->
-             bool()).
+-spec(is_request_processed(string()) -> bool()).
 is_request_processed([{response, {already_sent, _, _}}, _]) ->
     true;
 is_request_processed(_) ->
     false.
 
+
+-spec(get_querystring/1 :: (string()) -> string()).
 get_querystring(Uri) ->
     R = httpd_util:split_path(Uri),
     {_Path, QueryString} = R,
@@ -71,6 +72,7 @@ get_querystring(Uri) ->
     end.
 
 
+-spec(parse_query_string/1 :: (string()) -> list({string(), string()})).
 parse_query_string(String) ->
     Query = httpd:parse_query(String),
     [{Key, Value} || {Key, Value} <- Query, Key /= []].
@@ -86,7 +88,7 @@ parse_post_args(Info) ->
         {simple, Data} ->
             parse_query_string(Data);
         {multipart, Boundary} ->
-            my_multipart_inets:get_multipart(Info#mod.entity_body, Boundary)
+            s_multipart_inets:get_multipart(Info#mod.entity_body, Boundary)
     end.
 
 -spec(fetch_boundary/1 :: (list()) -> {simple, string()} | {multipart, string()}).	     

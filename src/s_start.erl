@@ -5,7 +5,7 @@
 %%%
 %%% Created : 24 Jun 2009 by Alexander Borovsky <alex@partizan.home>
 %%%-------------------------------------------------------------------
--module(my_start).
+-module(s_start).
 
 %%--------------------------------------------------------------------
 %% Include files

@@ -1,11 +1,11 @@
 %%%-------------------------------------------------------------------
-%%% File    : my_multipart_inets.erl
+%%% File    : s_multipart_inets.erl
 %%% Author  : Alexander Borovsky <alex@partizan.home>
 %%% Description : 
 %%%
 %%% Created : 26 Jun 2009 by Alexander Borovsky <alex@partizan.home>
 %%%-------------------------------------------------------------------
--module(my_multipart_inets).
+-module(s_multipart_inets).
 
 %%--------------------------------------------------------------------
 %% Include files

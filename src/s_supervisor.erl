@@ -1,13 +1,13 @@
 %%%-------------------------------------------------------------------
-%%% File    : mysite_app.erl
+%%% File    : myapp_supervisor.erl
 %%% Author  : Alexander Borovsky <alex@partizan.home>
-%%% Description : My test application
+%%% Description : Main supervisor
 %%%
 %%% Created : 24 Jun 2009 by Alexander Borovsky <alex@partizan.home>
 %%%-------------------------------------------------------------------
--module(mysite_app).
+-module(s_supervisor).
 
--behaviour(application).
+-behaviour(supervisor).
 %%--------------------------------------------------------------------
 %% Include files
 %%--------------------------------------------------------------------
@@ -16,19 +16,20 @@
 %% External exports
 %%--------------------------------------------------------------------
 -export([
-         start/2,
-         stop/1
+         start_link/0
         ]).
 
 %%--------------------------------------------------------------------
 %% Internal exports
 %%--------------------------------------------------------------------
 -export([
+         init/1
         ]).
 
 %%--------------------------------------------------------------------
 %% Macros
 %%--------------------------------------------------------------------
+-define(SERVER, ?MODULE).
 
 %%--------------------------------------------------------------------
 %% Records
@@ -38,25 +39,25 @@
 %% External functions
 %%====================================================================
 %%--------------------------------------------------------------------
-%% Func: start/2
-%% Returns: {ok, Pid}        |
-%%          {ok, Pid, State} |
+%% Function: start_link/0
+%% Description: Starts the supervisor
+%%--------------------------------------------------------------------
+start_link() ->
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
+
+%%====================================================================
+%% Server functions
+%%====================================================================
+%%--------------------------------------------------------------------
+%% Func: init/1
+%% Returns: {ok,  {SupFlags,  [ChildSpec]}} |
+%%          ignore                          |
 %%          {error, Reason}   
 %%--------------------------------------------------------------------
-start(Type, StartArgs) ->
-    case myapp_supervisor:start_link(StartArgs) of
-        {ok, Pid} -> 
-            {ok, Pid};
-        Error ->
-            Error
-    end.
-
-%%--------------------------------------------------------------------
-%% Func: stop/1
-%% Returns: any 
-%%--------------------------------------------------------------------
-stop(State) ->
-    ok.
+init([]) ->
+    AChild = {app_top,{myapp_main,start_link,[]},
+              permanent,2000,worker,['AModule']},
+    {ok,{{one_for_all,0,1}, [AChild]}}.
 
 %%====================================================================
 %% Internal functions

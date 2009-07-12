@@ -6,8 +6,10 @@
 -include_lib("ct.hrl").
 
 init_per_suite(Config) ->
+    s_conf:start(),
     Config.
 end_per_suite(_Config) ->
+    s_conf:terminate(),
     ok.
 init_per_testcase(_TestCase, Config) ->
     Config.

@@ -87,7 +87,12 @@ process_part(Header, Data) ->
 
 -spec(save_file/1 :: (binary()) -> ok | error).
 save_file(Data) ->
-    FileName = "/tmp/" ++ next_file_name(),
+    Dir = case s_conf:get_value(upload_dir) of
+              not_found -> "/tmp";
+              D -> D
+          end,
+    s_utils:mkdir_p(Dir),
+    FileName = filename:join(Dir, next_file_name()),
 
     Ret = file:write_file(FileName, Data),
     case Ret of 

@@ -8,6 +8,7 @@ compile:
 clean:
 	rm -rf ./ebin/*.*
 	rm -rf ./test/ebin/*.*
+	rm -rf ./test/logs/*
 
 test: compile
 	run_test -dir test -logdir test/logs

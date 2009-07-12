@@ -2,5 +2,6 @@
 #*#
 *.beam
 *.dump
+tmp
 
 test/logs

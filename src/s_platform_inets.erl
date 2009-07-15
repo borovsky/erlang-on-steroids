@@ -10,7 +10,7 @@
 %%--------------------------------------------------------------------
 %% Include files
 %%--------------------------------------------------------------------
--include("s_types.hrl").
+-include("s_internal_types.hrl").
 -include_lib("inets/src/httpd.hrl").
 
 %%--------------------------------------------------------------------
@@ -63,14 +63,17 @@ is_request_processed([{response, {already_sent, _, _}}, _]) ->
 is_request_processed(_) ->
     false.
 
-
--spec(get_querystring/1 :: (string()) -> string()).
+%%--------------------------------------------------------------------
+%% Function: get_querystring/1
+%% Description: Extracts query string from 
+%%--------------------------------------------------------------------
+-spec(get_querystring/1 :: (string()) -> {string(), string()}).
 get_querystring(Uri) ->
     R = httpd_util:split_path(Uri),
-    {_Path, QueryString} = R,
+    {Path, QueryString} = R,
     case QueryString of 
-        [] -> []; 
-        _ -> tl(QueryString) 
+        [] -> {Path, []}; 
+        QueryString -> {Path, tl(QueryString)}
     end.
 
 
@@ -80,12 +83,12 @@ parse_query_string(String) ->
     [{Key, Value} || {Key, Value} <- Query, Key /= []].
     
 
+-spec(parse_get_args/1 :: (#mod{}) ->  {string(), list(tuple())}).
 parse_get_args(Info) ->
-    QueryString = get_querystring(Info#mod.request_uri),
-    parse_query_string(QueryString).
+    {Path, QueryString} = get_querystring(Info#mod.request_uri),
+    {Path, parse_query_string(QueryString)}.
 
--spec(parse_post_args/1 :: (#mod{}) -> 
-             list(tuple())).
+-spec(parse_post_args/1 :: (#mod{}) ->  list(tuple())).
 parse_post_args(Info) ->
     BoundaryStruct = fetch_boundary(Info),
     case BoundaryStruct of
@@ -111,15 +114,32 @@ fetch_boundary(Data) ->
             {simple, Data#mod.entity_body}
     end.
 
+%%====================================================================
+%% Internal functions
+%%====================================================================
 -spec(do_process_request/1 :: (#mod{}) -> tuple()).
 do_process_request(Info) ->
-    GetParams = parse_get_args(Info),
+    {Path, GetParams} = parse_get_args(Info),
     PostParams = parse_post_args(Info),
     io:format("GET params: ~p~n", [GetParams]),
     io:format("POST params: ~p~n", [PostParams]),
-    ResponseCode = 200,
-    ContentType = "text/html",
-    Body = "<html><head><title>Test</title></head><body><h1>Test</h1></body></html>",
+    Method = map_method(Info#mod.method),
+    Request = #common_request_record{
+      method = Method, 
+      url = Path,
+      get_params = GetParams,
+      post_params = PostParams
+     },
+    Response = process_response(s_dispatcher:dispatch(Request), Method),
+    io:format("Response: ~p~n", [Response]),
+    Response.
+
+-spec(process_response/2 :: (steroids_response(), atom()) -> tuple()).
+process_response(#render_response{data = Body, 
+                                  content_type = ContentType,
+                                  status_code = ResponseCode
+                                 }, Method) ->
+
     Size = integer_to_list(httpd_util:flatlength(Body)),
 
     Headers = lists:flatten([
@@ -129,16 +149,25 @@ do_process_request(Info) ->
                             ]),		
 
 
-    ResponsePre = case Info#mod.method of
-                   "HEAD" -> {response, {response, Headers, nobody}};
+    ResponsePre = case Method of
+                   head -> {response, {response, Headers, nobody}};
                    _ -> {response, {response, Headers, Body}}
                end,
 
-    Response = {proceed,[ ResponsePre
-                  ]},
-    io:format("Response: ~p~n", [Response]),
-    Response. 
+    {proceed,[ ResponsePre ]};
+process_response(#redirect_response{target = Target}, _Method) ->
+    {proceed,
+     [{response,
+       {301, ["Location: ", Target, "\r\n"
+              "Content-Type: text/html\r\n",
+              "\r\n",
+              "<HTML>\n<HEAD>\n<TITLE>Redirect</TITLE>\n</HEAD>\n",
+              "<BODY>\n</BODY>\n</HTML>\n"]}}]}.
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+-spec(map_method/1 :: (string()) -> atom()).
+map_method("POST") ->
+    post;
+map_method("HEAD") ->
+    head;
+map_method(_) ->
+    get.

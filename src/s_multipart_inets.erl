@@ -49,8 +49,8 @@ get_multipart(Body, Boundary) ->
 %%====================================================================
 
 %%--------------------------------------------------------------------
-%% Function: Generates parameters from multiparts
-%% Description:
+%% Function: retrive_data/1
+%% Description: Generates parameters from multiparts
 %%--------------------------------------------------------------------
 -spec(retrive_data/1 :: (list(list(binary()))) -> list(request_parameter())).
 retrive_data([]) ->
@@ -85,6 +85,10 @@ process_part(Header, Data) ->
                     {content_type, ContentType}]}
     end.
 
+%%--------------------------------------------------------------------
+%% Function: save_file/1
+%% Description: Stores file to upload directory
+%%--------------------------------------------------------------------
 -spec(save_file/1 :: (binary()) -> ok | error).
 save_file(Data) ->
     Dir = case s_conf:get_value(upload_dir) of
@@ -102,17 +106,27 @@ save_file(Data) ->
             error
         end.
 
+%%--------------------------------------------------------------------
+%% Function: next_file_name/0
+%% Description: Generates unique file name
+%%--------------------------------------------------------------------
 -spec(next_file_name/0 :: () -> string()).
 next_file_name() ->
-    "1".
+    {MegaSecs, Secs, MicroSecs} = now(),
+    io_lib:format("~w-~w-~w.dat", [MegaSecs, Secs, MicroSecs]).
 
--spec(sanitize_file_name/1 :: (string()) -> string()).
-sanitize_file_name(Name) ->
-    Name.
 
 %%--------------------------------------------------------------------
-%% Function: Parses HTTP-like headers to more useful form
-%% Description:
+%% Function: sanitize_file_name/1
+%% Description: Sanitizes file name (some IE versions provides full path to file
+%%--------------------------------------------------------------------
+-spec(sanitize_file_name/1 :: (string()) -> string()).
+sanitize_file_name(Name) ->
+    lists:last(string:tokens(Name, "\\")).
+
+%%--------------------------------------------------------------------
+%% Function: parse_headers/1
+%% Description:  Parses HTTP-like headers to more useful form
 %%--------------------------------------------------------------------
 -spec(parse_headers/1 :: ([binary()]) -> list(parsed_http_header())).
 parse_headers([]) -> 
@@ -120,6 +134,10 @@ parse_headers([]) ->
 parse_headers([Line|Rest]) -> 
     [parse_header(Line)|parse_headers(Rest)].
 
+%%--------------------------------------------------------------------
+%% Function: parse_header/1
+%% Description:  Parses one HTTP header
+%%--------------------------------------------------------------------
 -spec(parse_header/1 :: (string()) -> parsed_http_header()).
 parse_header(Header) ->
     {match, [Name, Value]} = re:run(Header, "^(.*):(.*)\$", [{capture, [1, 2], list}]),

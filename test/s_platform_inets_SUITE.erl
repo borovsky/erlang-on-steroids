@@ -151,25 +151,28 @@ check_file_post_request(Variables) ->
 % GET request tests
 
 check_get_to_root_with_no_params(_Config) ->
-    check_get_request([], "/").
+    check_get_request({"/", []}, "/").
 
 check_get_with_no_params(_Config) ->
-    check_get_request([], "/test.html").
+    check_get_request({"/test.html", []}, "/test.html").
 
 check_get_with_empty_params(_Config) ->
-    check_get_request([], "/test.html?").
+    check_get_request({"/test.html", []}, "/test.html?").
 
 check_get_with_one_simple_parameter(_Config) ->
-    check_get_request([{"test", "abc"}], "/test.html?test=abc").
+    check_get_request({"/test.html", [{"test", "abc"}]}, "/test.html?test=abc").
 
 check_get_with_two_simple_parameters(_Config) ->
-     check_get_request([{"test", "abc"}, {"test2", "cde"}], "/test.html?test=abc&test2=cde").
+     check_get_request({"/test.html", [{"test", "abc"}, {"test2", "cde"}]}, 
+                       "/test.html?test=abc&test2=cde").
 
 check_get_with_plus_parameter(_Config) ->
-     check_get_request([{"test", "abc cde"}], "/test.html?test=abc+cde").
+     check_get_request({"/test.html", [{"test", "abc cde"}]}, 
+                       "/test.html?test=abc+cde").
 
 check_get_with_encoded_parameter(_Config) ->
-     check_get_request([{"test", "abc cde"}], "/test.html?test=abc%20cde").
+     check_get_request({"/test.html", [{"test", "abc cde"}]}, 
+                       "/test.html?test=abc%20cde").
 
 % Simple POST request tests
 

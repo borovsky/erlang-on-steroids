@@ -3,5 +3,6 @@
 *.beam
 *.dump
 tmp
+ebin/*
 
 test/logs

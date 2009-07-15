@@ -4,6 +4,7 @@ compile:
 	mkdir -p ebin
 	mkdir -p test/ebin
 	erl -make 
+	cp -f src/*.app ebin/
 
 clean:
 	rm -rf ./ebin/*.*

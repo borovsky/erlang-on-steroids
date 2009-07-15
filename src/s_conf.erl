@@ -98,6 +98,7 @@ get_value(Key) ->
 %% Description: Initiates the server
 %%--------------------------------------------------------------------
 init([]) ->
+    io:format("Starting s_conf...~n", []),
     ets:new(?MODULE, [named_table, protected]),
     Data = load_config(),
     ets:insert(?MODULE, Data),
@@ -188,6 +189,7 @@ load_config() ->
 %%
 -spec(terminate/0 :: () -> ok).
 terminate() ->
+    io:format("Terminating s_conf...~n", []),
     gen_server:call({global, ?MODULE}, terminate).
 
 default_config() ->
@@ -232,6 +234,5 @@ enhance_config(_Key, Value) ->
 -spec(calculate_server_root/0 :: () -> string()).	     
 calculate_server_root() ->
     ThisModulePath = filename:split(code:which(s_conf)),
-    io:format("~p~n", [ThisModulePath]),
     filename:join(lists:sublist(ThisModulePath, length(ThisModulePath)-2)).
 

@@ -16,6 +16,9 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
+%% tests exports
+-export([terminate/0, timeout_module/1]).
+
 -include_lib("kernel/include/file.hrl").
 
 
@@ -99,6 +102,11 @@ init([]) ->
 handle_call({load_module, CallbackModule, Path}, _From, State) ->
     server_reload_module(CallbackModule, Path),
     {reply, ok, State};
+handle_call(terminate, _From, State) ->
+    {stop, shutdown, ok, State};
+handle_call({timeout_module, ModuleName}, _From, State) ->
+    ets:insert(?SERVER, {{lookup, ModuleName}, {0,0,0}}),
+    {reply, ok, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -151,6 +159,25 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
+%%--------------------------------------------------------------------
+%% @spec terminate() -> any()
+%% @doc Terminates server. For tests only
+%% @private
+%% @end
+%%--------------------------------------------------------------------
+-spec(terminate/0 :: () -> any()).
+terminate() ->
+    gen_server:call(?SERVER, terminate).
+
+%%--------------------------------------------------------------------
+%% @spec timeout_module(string()) -> any()
+%% @doc Expire module. Modification time will be checked again. For tests only
+%% @private
+%% @end
+%%--------------------------------------------------------------------
+-spec(timeout_module/1 :: (string()) -> any()).
+timeout_module(ModuleName) ->
+    gen_server:call(?SERVER, {timeout_module, ModuleName}).
 
 %%--------------------------------------------------------------------
 %% @spec last_checked(atom()) -> integer()

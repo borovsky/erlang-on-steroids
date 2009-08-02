@@ -97,12 +97,12 @@ get(Key) ->
 %%====================================================================
 
 %%
-%% @doc Loads config from file
+%% @doc Terminates server (for tests only)
+%% @private
 %% @end
 %%
 -spec(terminate/0 :: () -> ok).
 terminate() ->
-    io:format("Terminating s_conf...~n", []),
     gen_server:call({global, ?MODULE}, terminate).
 
 %%====================================================================
@@ -117,7 +117,8 @@ terminate() ->
 %% @doc Initiates the server
 %% @end
 %% 
-init([]) ->
+-spec(init/1 :: (any()) -> tuple() | ignore).
+init(_Args) ->
     io:format("Starting s_conf...~n", []),
     ets:new(?MODULE, [named_table, protected]),
     load_config_internal(),

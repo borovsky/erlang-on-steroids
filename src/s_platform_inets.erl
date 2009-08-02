@@ -121,8 +121,6 @@ fetch_boundary(Data) ->
 do_process_request(Info) ->
     {Path, GetParams} = parse_get_args(Info),
     PostParams = parse_post_args(Info),
-    io:format("GET params: ~p~n", [GetParams]),
-    io:format("POST params: ~p~n", [PostParams]),
     Method = map_method(Info#mod.method),
     Request = #common_request_record{
       method = Method, 
@@ -131,7 +129,6 @@ do_process_request(Info) ->
       post_params = PostParams
      },
     Response = process_response(s_dispatcher:dispatch(Request), Method),
-    io:format("Response: ~p~n", [Response]),
     Response.
 
 -spec(process_response/2 :: (steroids_response(), atom()) -> tuple()).
@@ -140,7 +137,7 @@ process_response(#render_response{data = Body,
                                   status_code = ResponseCode
                                  }, Method) ->
 
-    Size = integer_to_list(httpd_util:flatlength(Body)),
+    Size = integer_to_list(iolist_size(Body)),
 
     Headers = lists:flatten([
                              {code, ResponseCode},

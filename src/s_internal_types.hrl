@@ -14,8 +14,15 @@
 -record(common_request_record,
       {method :: atom(),
        url :: string(),
-       get_params :: list(request_parameter()),
-       post_params ::list(request_parameter())
+       get_params :: request_parameters_list(),
+       post_params ::request_parameters_list()
+      }).
+
+-record(dispatched_request_record,
+      {method :: atom(),
+       controller ::  string(),
+       action :: string(),
+       parameters :: dict()
       }).
 
 -record(redirect_response, {target :: string()}).

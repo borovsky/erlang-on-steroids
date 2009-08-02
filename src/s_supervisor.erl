@@ -38,10 +38,13 @@ start_link(_StartArgs) ->
 %% to find out about restart strategy, maximum restart frequency and child 
 %% specifications.
 %%--------------------------------------------------------------------
+-spec(init/1 :: (any()) -> {ok, tuple()} | ignore | {error, any()}).
 init([]) ->
     SConf = {s_conf,{s_conf,start_link,[]},
               permanent,2000,worker,[s_conf]},
-    {ok,{{one_for_all,0,1}, [SConf]}}.
+    SReloader = {s_reloader,{s_reloader,start_link,[]},
+              permanent,2000,worker,[s_conf]},
+    {ok,{{one_for_all,0,1}, [SConf, SReloader]}}.
 
 %%====================================================================
 %% Internal functions

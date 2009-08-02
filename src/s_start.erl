@@ -34,8 +34,7 @@ start() ->
     start(inets).
 
 start(Server) ->
-    io:format("Loading application...~n", []),
-    application:load(steroids),
+    appmon:start(),
     io:format("Starting application...~n", []),
     application:start(steroids),
     io:format("Starting webserver...~n", []),

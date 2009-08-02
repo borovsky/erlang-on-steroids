@@ -1,14 +1,14 @@
 %%%-------------------------------------------------------------------
-%%% File    : s_routes.erl
+%%% File    : test_controller.erl
 %%% Author  : Alexander Borovsky <partizan@altlinux.ru>
 %%% Description : 
 %%%
-%%% Created : 12 Jul 2009 by Alexander Borovsky <partizan@altlinux.ru>
+%%% Created : 16 Jul 2009 by Alexander Borovsky <partizan@altlinux.ru>
 %%%-------------------------------------------------------------------
--module(s_routes).
+-module(test_controller).
 
 %% API
--export([parse_request/2]).
+-export([test/1]).
 
 %%====================================================================
 %% API
@@ -17,9 +17,9 @@
 %% Function: 
 %% Description:
 %%--------------------------------------------------------------------
-parse_request(_Method, _URL) ->
-    {"test", "test", []}.
 
+test(_Params) ->
+    ok.
 
 %%====================================================================
 %% Internal functions

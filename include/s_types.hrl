@@ -16,5 +16,10 @@
       }).
 
 -type(request_parameter() :: {string(), string()} | {string(), #file_request_parameter{}}).
+-type(request_parameters_list() :: list(request_parameter())).
+
+-type(steroids_controller_result() :: ok | {render, string()} | {render, string() | atom(), string() | atom()}).
+
+-type(extended_iolist() :: [any()] | binary()).
 
 -endif.

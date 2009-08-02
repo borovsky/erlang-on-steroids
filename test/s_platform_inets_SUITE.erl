@@ -73,9 +73,9 @@ post_boundary() ->
 gen_post_request(Encoding, PostBody) ->
     Boundary = post_boundary(),
     ContentType = case Encoding of
-                   url -> "application/x-www-form-urlencoded";
-                   _ -> "multipart/form-data; boundary=" ++ Boundary
-               end,
+                      url -> "application/x-www-form-urlencoded";
+                      _ -> "multipart/form-data; boundary=" ++ Boundary
+                  end,
     RequestPath = "/test",
     Request = {mod,{init_data,{53597,"127.0.0.1"},"localhost"},
                [], ip_comm, port, httpd_conf__0_0_0_0__4000, "POST",
@@ -88,7 +88,7 @@ gen_post_request(Encoding, PostBody) ->
                 {"content-type", ContentType}],
                PostBody, false},
     Request.
-    
+
 
 parse_post_request(Request) ->
     s_platform_inets:parse_post_args(Request).
@@ -111,9 +111,9 @@ encode_multipart_parameter({Name, Value}) ->
     "Content-Disposition: form-data; name=\"" ++ Name ++"\"\r\n\r\n" ++ Value ++ "\r\n".
 
 gen_multipart_post([]) ->
-     "";
+    "";
 gen_multipart_post(Parameters) ->
-     gen_multipart_post([post_boundary(), "--"], Parameters).
+    gen_multipart_post([post_boundary(), "--"], Parameters).
 
 gen_multipart_post(Chunks, []) ->
     lists:flatten(lists:reverse(["--\r\n" | Chunks]));
@@ -125,7 +125,7 @@ param(Key, List) ->
         {value, {_, Value}} -> Value;
         _ -> false
     end.
-           
+
 
 check_multipart_post_request(Result) ->
     PostBody = gen_multipart_post(Result),
@@ -148,7 +148,7 @@ check_file_post_request(Variables) ->
     1.
 
 
-% GET request tests
+                                                % GET request tests
 
 check_get_to_root_with_no_params(_Config) ->
     check_get_request({"/", []}, "/").
@@ -163,30 +163,30 @@ check_get_with_one_simple_parameter(_Config) ->
     check_get_request({"/test.html", [{"test", "abc"}]}, "/test.html?test=abc").
 
 check_get_with_two_simple_parameters(_Config) ->
-     check_get_request({"/test.html", [{"test", "abc"}, {"test2", "cde"}]}, 
-                       "/test.html?test=abc&test2=cde").
+    check_get_request({"/test.html", [{"test", "abc"}, {"test2", "cde"}]}, 
+                      "/test.html?test=abc&test2=cde").
 
 check_get_with_plus_parameter(_Config) ->
-     check_get_request({"/test.html", [{"test", "abc cde"}]}, 
-                       "/test.html?test=abc+cde").
+    check_get_request({"/test.html", [{"test", "abc cde"}]}, 
+                      "/test.html?test=abc+cde").
 
 check_get_with_encoded_parameter(_Config) ->
-     check_get_request({"/test.html", [{"test", "abc cde"}]}, 
-                       "/test.html?test=abc%20cde").
+    check_get_request({"/test.html", [{"test", "abc cde"}]}, 
+                      "/test.html?test=abc%20cde").
 
-% Simple POST request tests
+                                                % Simple POST request tests
 
 check_simple_post_empty(_Config) ->
     check_post_request([], url, "").
 
 check_simple_post_with_one_paramerer(_Config) ->
-      check_post_request([{"a", "b"}], url, "a=b").
+    check_post_request([{"a", "b"}], url, "a=b").
 
 check_simple_post_with_two_paramerers(_Config) ->
     check_post_request([{"a", "b"}, {"c", "d"}], url, "a=b&c=d").
 
 check_simple_post_with_plus_paramerer(_Config) ->
-      check_post_request([{"a", "b d"}], url, "a=b+d").
+    check_post_request([{"a", "b d"}], url, "a=b+d").
 
 check_simple_post_with_quoted_paramerer(_Config) ->
     check_post_request([{"a", "b d"}], url, "a=b%20d").

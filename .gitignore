@@ -1,8 +1,10 @@
 *~
 #*#
 *.beam
+app/ebin/*
 *.dump
 tmp
 ebin/*
+doc/*
 
 test/logs

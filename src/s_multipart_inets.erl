@@ -91,7 +91,7 @@ process_part(Header, Data) ->
 %%--------------------------------------------------------------------
 -spec(save_file/1 :: (binary()) -> ok | error).
 save_file(Data) ->
-    Dir = case s_conf:get_value(upload_dir) of
+    Dir = case s_conf:get(upload_dir) of
               not_found -> "/tmp";
               D -> D
           end,

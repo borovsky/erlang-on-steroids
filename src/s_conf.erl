@@ -21,6 +21,8 @@
 %% Internal (for tests, etc)
 -export([terminate/0]).
 
+-define(EXPAND_PATH_VARIABLES, [ebin_dir, views_dir, controller_dir, upload_dir, routes_file]).
+
 %%====================================================================
 %% API
 %%====================================================================
@@ -124,7 +126,7 @@ init(_Args) ->
     load_config_internal(),
     {ok, {}}.
 
-
+-spec(handle_call/3 :: (tuple() | atom(), pid(), any()) -> tuple()).
 handle_call(reload, _From, State) ->
     load_config_internal(),
     {reply, ok, State};
@@ -145,6 +147,7 @@ handle_call(_Request, _From, State) ->
 %%                                  {stop, Reason, State}
 %% @doc Handling cast messages
 %% 
+-spec(handle_cast/2 :: (any(), any()) -> tuple()).
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -154,6 +157,7 @@ handle_cast(_Msg, State) ->
 %%                                   {stop, Reason, State}
 %% @doc Handling all non call/cast messages
 %% 
+-spec(handle_info/2 :: (any(), any()) -> tuple()).
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -166,6 +170,7 @@ handle_info(_Info, State) ->
 %% The return value is ignored.
 %% @end
 %% 
+-spec(terminate/2 :: (any(), any()) -> ok).
 terminate(_Reason, _State) ->
     ets:delete(?MODULE),
     ok.
@@ -174,6 +179,7 @@ terminate(_Reason, _State) ->
 %% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% @doc Convert process state when code is changed
 %% 
+-spec(code_change/3 :: (any(), any(), any()) -> {ok, any()}).
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
@@ -201,7 +207,8 @@ default_config() ->
      {upload_dir, "tmp/uploads"},
      {controller_dir, "app/controllers"},
      {views_dir, "app/views"},
-     {ebin_dir, "app/ebin"}
+     {ebin_dir, "app/ebin"},
+     {routes_file, "config/routes.conf"}
     ].
 
 %%
@@ -226,27 +233,14 @@ load_config(FileName) ->
 %% @end
 %%
 -spec(enhance_config/2 :: (atom(), any()) -> any()).
-enhance_config(upload_dir, ["/" | Path]) ->
-    Path;
-enhance_config(upload_dir, Path) ->
-    filename:join(server_root(), Path);
-
-enhance_config(controller_dir, ["/" | Path]) ->
-    Path;
-enhance_config(controller_dir, Path) ->
-    filename:join(server_root(), Path);
-enhance_config(views_dir, ["/" | Path]) ->
-    Path;
-enhance_config(views_dir, Path) ->
-    filename:join(server_root(), Path);
-
-enhance_config(ebin_dir, ["/" | Path]) ->
-    Path;
-enhance_config(ebin_dir, Path) ->
-    filename:join(server_root(), Path);
-
-enhance_config(_Key, Value) ->
-    Value.
+enhance_config(Key, Value) ->
+    case lists:member(Key, ?EXPAND_PATH_VARIABLES) of
+        true -> case Value of
+                    ["/" | _] -> Value;
+                    _ -> filename:join(server_root(), Value)
+                end;
+        false -> Value
+    end.
 
 %%
 %% @spec calculate_server_root() -> ServerRootDir :: string()
@@ -258,7 +252,6 @@ enhance_config(_Key, Value) ->
 calculate_server_root() ->
     ThisModulePath = filename:split(code:which(s_conf)),
     filename:join(lists:sublist(ThisModulePath, length(ThisModulePath)-2)).
-
 
 %%
 %% @spec apply_config_changes(list({atom(), any()})) -> any()

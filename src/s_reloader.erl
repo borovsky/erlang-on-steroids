@@ -30,7 +30,6 @@
          compile/3,
          update_last_check/2,
          reload_module/2,
-         get_change_time/1,
          last_reload_time/1,
          last_checked/1]).
 
@@ -204,18 +203,6 @@ last_reload_time(ModuleName) ->
         [{_, ReloadTime}] -> ReloadTime
     end.
 
-%%--------------------------------------------------------------------
-%% @spec get_change_time(string()) -> date_time()
-%% @doc Returns time from last module check
-%%--------------------------------------------------------------------
--spec(get_change_time/1 :: (string()) -> date_time()).
-get_change_time(Path) ->
-    case file:read_file_info(Path) of
-        {ok, FileInfo} -> FileInfo#file_info.mtime;
-        {error, Reason} -> 
-            io:format("File not found: ~s~n", [Path]),
-            throw({problem_with_file_access, Reason})
-    end.
 
 %%--------------------------------------------------------------------
 %% @spec reload_module(atom(), string()) -> any()
@@ -240,8 +227,7 @@ is_reload_required(CallbackModule, Path) ->
         _ when LastChecked > ?RECHECK_TIME ->
             RealPath = apply(CallbackModule, get_real_path, [Path]),
             LastReloadTime = last_reload_time(ModuleName),
-            ChangeTime = get_change_time(RealPath),
-            case get_change_time(RealPath) of
+            case s_utils:get_change_time(RealPath) of
                 ChangeTime when LastReloadTime < ChangeTime ->
                     yes;
                 _ -> last_check_update
@@ -266,7 +252,7 @@ update_last_check(CallbackModule, Path) ->
 -spec(compile_and_load/3 :: (atom(), string(), string()) -> ok).
 compile_and_load(CallbackModule, Path, ModuleName) ->
     RealPath = apply(CallbackModule, get_real_path, [Path]),
-    ChangeTime = get_change_time(RealPath),
+    ChangeTime = s_utils:get_change_time(RealPath),
     io:format("Compiling: ~s~n", [RealPath]),
     apply(CallbackModule, compile_and_load, [RealPath, list_to_atom(ModuleName)]),
     ets:insert(?SERVER, {{reload, ModuleName}, ChangeTime}),

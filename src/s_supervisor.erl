@@ -23,6 +23,7 @@
 %% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
 %% Description: Starts the supervisor
 %%--------------------------------------------------------------------
+-spec(start_link/1 :: (any()) -> {ok, pid()} | ignore | {error, any()}).
 start_link(_StartArgs) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
@@ -44,7 +45,9 @@ init([]) ->
               permanent,2000,worker,[s_conf]},
     SReloader = {s_reloader,{s_reloader,start_link,[]},
               permanent,2000,worker,[s_conf]},
-    {ok,{{one_for_all,0,1}, [SConf, SReloader]}}.
+    SRoutes = {s_routes,{s_routes,start_link,[]},
+              permanent,2000,worker,[s_routes]},
+    {ok,{{one_for_all,0,1}, [SConf, SReloader, SRoutes]}}.
 
 %%====================================================================
 %% Internal functions

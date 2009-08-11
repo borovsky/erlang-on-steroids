@@ -35,4 +35,6 @@
 -type(steroids_response() :: #redirect_response{} | 
       #render_response{}).
 
+-type(routing_result() :: {string(), string(), request_parameters_list()} | none).
+
 -endif.

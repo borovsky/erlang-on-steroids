@@ -227,7 +227,7 @@ is_reload_required(CallbackModule, Path) ->
         _ when LastChecked > ?RECHECK_TIME ->
             RealPath = apply(CallbackModule, get_real_path, [Path]),
             LastReloadTime = last_reload_time(ModuleName),
-            case s_utils:get_change_time(RealPath) of
+            case filelib:last_modified(RealPath) of
                 ChangeTime when LastReloadTime < ChangeTime ->
                     yes;
                 _ -> last_check_update
@@ -252,7 +252,7 @@ update_last_check(CallbackModule, Path) ->
 -spec(compile_and_load/3 :: (atom(), string(), string()) -> ok).
 compile_and_load(CallbackModule, Path, ModuleName) ->
     RealPath = apply(CallbackModule, get_real_path, [Path]),
-    ChangeTime = s_utils:get_change_time(RealPath),
+    ChangeTime = filelib:last_modified(RealPath),
     io:format("Compiling: ~s~n", [RealPath]),
     apply(CallbackModule, compile_and_load, [RealPath, list_to_atom(ModuleName)]),
     ets:insert(?SERVER, {{reload, ModuleName}, ChangeTime}),

@@ -36,7 +36,8 @@
 %%--------------------------------------------------------------------
 -spec(parse_request/2 :: (atom(), string()) -> routing_result()).
 parse_request(Method, URL) ->
-    gen_server:call(?SERVER, {resolve, Method, URL}).
+    Pid = pg2:get_closest_pid(?SERVER), 
+    gen_server:call(Pid, {resolve, Method, URL}).
 
 
 %%--------------------------------------------------------------------
@@ -46,7 +47,7 @@ parse_request(Method, URL) ->
 %%--------------------------------------------------------------------
 -spec(start_link/0 :: () -> {ok, pid()} | ignore | {error, any()}).
 start_link() ->
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+    gen_server:start_link(?MODULE, [], []).
 
 %%====================================================================
 %% gen_server callbacks
@@ -62,7 +63,10 @@ start_link() ->
 %%--------------------------------------------------------------------
 -spec(init/1 :: (any()) -> {ok, any()}).
 init([]) ->
-    {ok, load_routes()}.
+    Response = {ok, load_routes()},
+    pg2:create(?SERVER),
+    pg2:join(?SERVER, self()),
+    Response.
 
 %%--------------------------------------------------------------------
 %% @spec handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -112,6 +116,7 @@ handle_info(_Info, State) ->
 %% 
 -spec(terminate/2 :: (any(), any()) -> ok).
 terminate(_Reason, _State) ->
+    pg2:leave(?SERVER, self()),
     ok.
 
 %% 
@@ -137,7 +142,7 @@ load_routes() ->
     RoutesFile = s_conf:get(routes_file),
     case file:consult(RoutesFile) of
         {ok, Routes} ->
-            ChangeTime = s_utils:get_change_time(RoutesFile),
+            ChangeTime = filelib:last_modified(RoutesFile),
             State = #state{last_reload = ChangeTime, routes = compile_routes(Routes)},
             garbage_collect(),
             State;
@@ -178,9 +183,15 @@ compile_routes([{Method, Path, Params}|Tuples], Routes) ->
     compile_routes(Tuples, NewRoutes);
 
 compile_routes([Problem | Tuples], Routes) ->
-    io:format("Can't handle route: ~p~n", [Problem]),
+    io:format("Can't process route: ~p~n", [Problem]),
     compile_routes(Tuples, Routes).
 
+%%--------------------------------------------------------------------
+%% @spec compile_path(atom(), list(string()), list({atom(), any()}), list()) -> list()
+%% @doc Compiles one route record (path)
+%% @private
+%% @end
+%%--------------------------------------------------------------------
 -spec(compile_path/4 :: (atom(), list(string()), list({atom(), any()}), list()) -> list()).
 compile_path(Method, [], Params, Routes) ->
     add_method(Routes, Method, Params);
@@ -197,6 +208,7 @@ compile_path(Method, [[$: | Element] | Path], Params, Routes) ->
     UpdatedList = compile_path(Method, Path, Params, PartList),
     UpdatedNamedParam = lists:keystore(Element, 1, NamedParam, {Element, UpdatedList}),
     lists:keystore(named_param, 1, Routes, {named_param, UpdatedNamedParam});
+
 compile_path(Method, [Element| Path], Params, Routes) ->
     PartList = case proplists:lookup(Element, Routes) of
                    none -> [];
@@ -205,6 +217,13 @@ compile_path(Method, [Element| Path], Params, Routes) ->
     UpdatedList = compile_path(Method, Path, Params, PartList),
     lists:keystore(Element, 1, Routes, {Element, UpdatedList}).
 
+
+%%--------------------------------------------------------------------
+%% @spec add_method(list(), atom(), list({atom(), any()})) -> list()
+%% @doc Adds record with method for current path
+%% @private
+%% @end
+%%--------------------------------------------------------------------
 -spec(add_method/3 :: (list(), atom(), list({atom(), any()})) -> list()).
 add_method(Routes, Method, Params) ->
     case proplists:lookup(root, Routes) of
@@ -217,58 +236,64 @@ add_method(Routes, Method, Params) ->
     end.
 %%--------------------------------------------------------------------
 %% @spec resolve_route(atom(), string(), #state{}) -> routing_result()
-%% @doc Do routing
+%% @doc Does routing
 %% @private
 %% @end
 %%--------------------------------------------------------------------
 -spec(resolve_route/3 :: (atom(), string(), list()) -> routing_result()).
 resolve_route(Method, Path, State) ->
-    io:format("Path: ~s~n", [Path]),
-    io:format("Start dict: ~p~n", [State]),
     SplittedPath = string:tokens(Path, "/"),
-    io:format("Splitted Path: ~p~n", [SplittedPath]),
     resolve_route_path(Method, SplittedPath, State).
 
 -spec(resolve_route_path/3 :: (atom(), [nonempty_string()], list()) -> routing_result()).
 resolve_route_path(Method, [], Route) ->
-    io:format("Current context: ~p~n", [Route]),
     case proplists:lookup(root, Route) of
         {_, Methods} -> check_method(Method, Methods);
-        none -> none
+        none -> not_found
     end;
 resolve_route_path(Method, [Part| Other], Route) ->
-    io:format("Current path: ~s/~p~n", [Part, Other]),
     case proplists:lookup(Part, Route) of
         {_, Value} -> resolve_route_path(Method, Other, Value);
         none -> case proplists:lookup(named_param, Route) of
-                    none -> none;
+                    none -> not_found;
                     {_, Variants} -> resolve_named_path(Method, Variants, Other, Part)
                 end
     end.
 
+%%--------------------------------------------------------------------
+%% @spec resolve_named_path(atom(), list(), list(string()), string()) ->
+%%         routing_result()
+%% @doc Resolves named path
+%% @private
+%% @end
+%%--------------------------------------------------------------------
 -spec(resolve_named_path/4 :: (atom(), list(), list(string()), string()) ->
              routing_result()).
 resolve_named_path(_Method, [], _PathPart, _Value) ->
-    none;
+    not_found;
 resolve_named_path(Method, [{Name, Route}| Variants], PathPart, Value) ->
     case resolve_route_path(Method, PathPart, Route) of
         {Controller, Action, Params} ->
             NewParams = lists:keystore(Name, 1, Params, {Name, Value}),
-            io:format("NewParams: ~p~n", [NewParams]),
             {Controller, Action, NewParams};
-        none -> resolve_named_path(Method, Variants, PathPart, Value)
+        not_found -> resolve_named_path(Method, Variants, PathPart, Value)
     end.
 
 
+%%--------------------------------------------------------------------
+%% @spec check_method(atom(), list({atom(), list()})) -> routing_result()
+%% @doc Checks if this leaf support HTTP method
+%% @private
+%% @end
+%%--------------------------------------------------------------------
 -spec(check_method/2 :: (atom(), list({atom(), list()})) ->
              routing_result()).
 check_method(Method, Methods) ->
-    io:format("Searching method ~p in ~p~n", [Method, Methods]),
     case lists:keysearch(Method, 1, Methods) of
         {_, {_, Params}} -> to_route_result(Params);
         false -> case lists:keysearch(any, 1, Methods) of
                      {_, {_, Params}} -> to_route_result(Params);
-                     false -> none
+                     false -> not_found
                  end
     end.
 
@@ -280,7 +305,6 @@ check_method(Method, Methods) ->
 %%--------------------------------------------------------------------
 -spec(to_route_result/1 :: (list({any(), any()})) -> routing_result()).
 to_route_result(Params)->
-    io:format("Routed params: ~p~n", [Params]),
     Controller = proplists:get_value(controller, Params, ""),
     Action = proplists:get_value(action, Params, "index"),
     {Controller, Action, cleanup_parameters(Params)}.

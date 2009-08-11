@@ -47,7 +47,9 @@ init([]) ->
               permanent,2000,worker,[s_conf]},
     SRoutes = {s_routes,{s_routes,start_link,[]},
               permanent,2000,worker,[s_routes]},
-    {ok,{{one_for_all,0,1}, [SConf, SReloader, SRoutes]}}.
+    SRoutes2 = {s_routes2,{s_routes,start_link,[]},
+              permanent,2000,worker,[s_routes]},
+    {ok,{{one_for_all,0,1}, [SConf, SReloader, SRoutes, SRoutes2]}}.
 
 %%====================================================================
 %% Internal functions

@@ -6,7 +6,7 @@
 -module(s_utils).
 
 %% API
--export([mkdir_p/1, get_change_time/1]).
+-export([mkdir_p/1]).
 
 -include_lib("kernel/include/file.hrl").
 
@@ -31,19 +31,6 @@ mkdir_p(DirName) ->
             end
         end.
 
-%%--------------------------------------------------------------------
-%% @spec get_change_time(string()) -> date_time()
-%% @doc Returns change time for file (or raise exception on error)
-%% @end
-%%--------------------------------------------------------------------
--spec(get_change_time/1 :: (string()) -> date_time()).
-get_change_time(Path) ->
-    case file:read_file_info(Path) of
-        {ok, FileInfo} -> FileInfo#file_info.mtime;
-        {error, Reason} -> 
-            io:format("File not found: ~s~n", [Path]),
-            throw({problem_with_file_access, Reason})
-    end.
 
 
 %%====================================================================

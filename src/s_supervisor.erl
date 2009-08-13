@@ -45,12 +45,17 @@ init([]) ->
               permanent,2000,worker,[s_conf]},
     SReloader = {s_reloader,{s_reloader,start_link,[]},
               permanent,2000,worker,[s_conf]},
-    SRoutes = {s_routes,{s_routes,start_link,[]},
-              permanent,2000,worker,[s_routes]},
-    SRoutes2 = {s_routes2,{s_routes,start_link,[]},
-              permanent,2000,worker,[s_routes]},
-    {ok,{{one_for_all,0,1}, [SConf, SReloader, SRoutes, SRoutes2]}}.
+    Routes = generate_routes(),
+    {ok,{{one_for_all,0,1}, [SConf, SReloader] ++ Routes}}.
 
 %%====================================================================
 %% Internal functions
 %%====================================================================
+
+generate_routes() ->
+    Indexes = lists:seq(1, erlang:system_info(schedulers)),
+    
+    lists:map(fun(Idx) -> 
+                      Id = list_to_atom("s_routes" ++ integer_to_list(Idx)),
+                      {Id,{s_routes,start_link,[]},
+                       permanent,2000,worker,[s_routes]} end, Indexes).

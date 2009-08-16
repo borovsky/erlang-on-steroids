@@ -1,0 +1,3 @@
+#!/bin/sh
+
+erl -pa lib/*/ebin +K true -sname myframe -s s_start start

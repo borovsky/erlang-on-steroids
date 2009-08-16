@@ -1,29 +1,24 @@
-APPNAME=steroids
-DOC_OPTS="[{todo, true}]"
-
+STEROIDS_VERSION="0.1"
 
 all: compile dializer test docs
 
 compile: 
-	mkdir -p ebin
-	mkdir -p test/ebin
-	erl -make 
-	cp -f src/*.app ebin/
-
-clean:
-	rm -rf ./app/ebin/*.*
-	rm -rf ./ebin/*.*
-	rm -rf ./doc/*.*
-	rm -rf ./test/ebin/*.*
-	rm -rf ./test/logs/*
-	rm -rf ./test/*.beam
+	@echo "Compiling..."
+	@make -sC"lib/steroids-$(STEROIDS_VERSION)" compile
 
 dializer:
-	dialyzer --no_check_plt --src -r src
+	@echo "Checking types..."
+	@make -sC "lib/steroids-$(STEROIDS_VERSION)" dializer
 
 docs:
-	erl -noshell -run edoc_run application "'$(APPNAME)'" '"."' '$(DOC_OPTS)' -s init stop
+	@echo "Generating docs..."
+	@make -sC "lib/steroids-$(STEROIDS_VERSION)" docs
 
 test: compile
-	run_test  -include `pwd`/src `pwd`/include -dir test -logdir test/logs
+	@echo "Testing..."
+	@make -sC "lib/steroids-$(STEROIDS_VERSION)" test
+
+clean:
+	@echo "Cleaning..."
+	@make -sC "lib/steroids-$(STEROIDS_VERSION)" clean
 

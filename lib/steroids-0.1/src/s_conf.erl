@@ -251,7 +251,7 @@ enhance_config(Key, Value) ->
 -spec(calculate_server_root/0 :: () -> string()).	     
 calculate_server_root() ->
     ThisModulePath = filename:split(code:which(s_conf)),
-    filename:join(lists:sublist(ThisModulePath, length(ThisModulePath)-2)).
+    filename:join(lists:sublist(ThisModulePath, length(ThisModulePath)-4)).
 
 %%
 %% @spec apply_config_changes(list({atom(), any()})) -> any()

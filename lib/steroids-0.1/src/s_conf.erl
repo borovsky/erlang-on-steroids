@@ -208,7 +208,9 @@ default_config() ->
      {controller_dir, "app/controllers"},
      {views_dir, "app/views"},
      {ebin_dir, "app/ebin"},
-     {routes_file, "config/routes.conf"}
+     {routes_file, "config/routes.conf"},
+     {log_file, "logs/development.log"},
+     {log_level, info}
     ].
 
 %%

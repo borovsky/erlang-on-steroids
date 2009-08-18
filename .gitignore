@@ -8,3 +8,4 @@ lib/*/ebin/*
 lib/*/doc/*
 
 lib/*/test/logs
+logs/*.log

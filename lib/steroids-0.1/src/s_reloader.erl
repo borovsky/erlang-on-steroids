@@ -179,17 +179,15 @@ timeout_module(ModuleName) ->
     gen_server:call(?SERVER, {timeout_module, ModuleName}).
 
 %%--------------------------------------------------------------------
-%% @spec last_checked(atom()) -> integer()
+%% @spec checked_ago(atom()) -> integer()
 %% @doc Returns time from last module check
 %%--------------------------------------------------------------------
--spec(last_checked/1 :: (string()) -> integer() | not_found).
-last_checked(ModuleName) ->
-    {MegaSecNow, SecNow, MicroSecNow} = erlang:now(),
+-spec(checked_ago/1 :: (string()) -> integer() | not_found).
+checked_ago(ModuleName) ->
     case ets:lookup(?SERVER, {lookup, ModuleName}) of
         [] -> not_found;
-        [{_, {MegaSec, Sec, MicroSec}}] ->
-                Diff = (MicroSecNow - MicroSec) + ((SecNow - Sec) + (MegaSecNow - MegaSec) * ?Million) * ?Million,
-                Diff div ?Million
+        [{_, Old}] ->
+            round(timer:now_diff(erlang:now(), Old) / ?Million)
     end.
 
 %%--------------------------------------------------------------------
@@ -221,10 +219,10 @@ reload_module(CallbackModule, Path) ->
              {yes | no | last_check_update, string()}).
 is_reload_required(CallbackModule, Path) ->
     ModuleName = apply(CallbackModule, get_module_name, [Path]),
-    LastChecked = last_checked(ModuleName),
-    Result = case LastChecked of
+    CheckedAgo = checked_ago(ModuleName),
+    Result = case CheckedAgo of
         not_found -> yes;
-        _ when LastChecked > ?RECHECK_TIME ->
+        _ when CheckedAgo > ?RECHECK_TIME ->
             RealPath = apply(CallbackModule, get_real_path, [Path]),
             LastReloadTime = last_reload_time(ModuleName),
             case filelib:last_modified(RealPath) of

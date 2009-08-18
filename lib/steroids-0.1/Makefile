@@ -25,5 +25,6 @@ docs:
 	erl -noshell -run edoc_run application "'$(APPNAME)'" '"."' '$(DOC_OPTS)' -s init stop
 
 test: compile
+	mkdir -p test/logs
 	run_test  -include `pwd`/src `pwd`/include -dir test -logdir test/logs
 

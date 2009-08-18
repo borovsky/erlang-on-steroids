@@ -43,10 +43,12 @@ start_link(_StartArgs) ->
 init([]) ->
     SConf = {s_conf,{s_conf,start_link,[]},
               permanent,2000,worker,[s_conf]},
+    SLog = {s_log,{s_log,start_link,[]},
+              permanent,2000,worker,[s_conf]},
     SReloader = {s_reloader,{s_reloader,start_link,[]},
               permanent,2000,worker,[s_conf]},
     Routes = generate_routes(),
-    {ok,{{one_for_all,0,1}, [SConf, SReloader] ++ Routes}}.
+    {ok,{{one_for_all,0,1}, [SConf, SLog, SReloader] ++ Routes}}.
 
 %%====================================================================
 %% Internal functions

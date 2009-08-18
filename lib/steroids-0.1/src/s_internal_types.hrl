@@ -22,7 +22,7 @@
       {method :: atom(),
        controller ::  string(),
        action :: string(),
-       parameters :: dict()
+       parameters :: gb_tree()
       }).
 
 -record(redirect_response, {target :: string()}).

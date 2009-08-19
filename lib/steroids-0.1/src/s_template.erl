@@ -5,10 +5,11 @@
 %%% @end
 %%% 
 %%%-------------------------------------------------------------------
--module(s_templates).
+-module(s_template).
 
 %% API
 -export([render/2, append_stored/2, set_stored/2, get_stored/1]).
+
 
 -include("s_types.hrl").
 
@@ -17,8 +18,7 @@
 
 %%====================================================================
 %% API
-%% ====================================================================
-
+%%====================================================================
 
 %%
 %% @spec render(string(), dict()) -> iolist()
@@ -28,8 +28,13 @@
 -spec(render/2 :: (string(), dict()) -> iolist()).
 render(TemplatePath, Params) ->
     ModuleName = s_reloader:load_thing(s_template_loader, TemplatePath),
-    Result = apply(ModuleName, render, [Params]),
-    process_enhanced_iolist(Result).
+    case apply(ModuleName, render, [Params]) of
+        {ok, Result} ->
+            process_enhanced_iolist(Result);
+        {error, Reason} ->
+            s_log:error(?MODULE, "Render error: ~s", [Reason]),
+            export
+        end.
 
 %%
 %% @spec append_stored(atom(), extended_iolist()) -> ok
@@ -81,7 +86,6 @@ calculate_stored_block_name(Name) ->
 %% Internal functions
 %%====================================================================
 
-
 -spec(process_enhanced_iolist/1 :: (extended_iolist()) -> iolist()).
 process_enhanced_iolist(List) ->
     process_enhanced_iolist([], lists:flatten(List), ?MAX_DEEP).
@@ -103,6 +107,6 @@ process_enhanced_iolist(Out, [E | List], Deep) ->
     process_enhanced_iolist([E | Out], List, Deep).
 
 get_substitution(Name) ->
-    s_templates:get_stored(Name).
+    s_template:get_stored(Name).
 
 

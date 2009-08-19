@@ -1,11 +1,8 @@
 %%%-------------------------------------------------------------------
-%%% File    : s_templates_SUITE.erl
-%%% Author  : Alexander Borovsky <partizan@altlinux.ru>
-%%% Description : 
-%%%
-%%% Created : 25 Jul 2009 by Alexander Borovsky <partizan@altlinux.ru>
+%%% @author Alexander Borovsky <partizan@altlinux.ru>
+%%% @doc Test for templates system
 %%%-------------------------------------------------------------------
--module(s_templates_SUITE).
+-module(s_template_SUITE).
 
 %% Note: This directive should only be used in test suites.
 -compile(export_all).
@@ -38,11 +35,11 @@ all() ->
 %%--------------------------------------------------------------------
 
 test_stored_set(_Config) -> 
-    s_templates:set_stored(my, "Test"),
-    <<"Test">> = list_to_binary(s_templates:get_stored(my)).
+    s_template:set_stored(my, "Test"),
+    <<"Test">> = list_to_binary(s_template:get_stored(my)).
 
 test_stored_append(_Config) -> 
-    s_templates:set_stored(my, "Test"),
-    s_templates:append_stored(my, "XYZ"),
-    s_templates:append_stored(my, "ABC"),
-    <<"TestXYZABC">> = list_to_binary(s_templates:get_stored(my)).
+    s_template:set_stored(my, "Test"),
+    s_template:append_stored(my, "XYZ"),
+    s_template:append_stored(my, "ABC"),
+    <<"TestXYZABC">> = list_to_binary(s_template:get_stored(my)).

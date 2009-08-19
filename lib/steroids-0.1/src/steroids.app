@@ -13,7 +13,7 @@
              s_routes, 
              s_start,
              s_supervisor,
-             s_templates,
+             s_template,
              s_template_loader,
              s_utils]},
   {registred, [s_conf, s_routes, s_reloader]},

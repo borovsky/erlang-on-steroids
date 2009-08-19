@@ -71,11 +71,11 @@ server_root() ->
     end.
 
 %%
-%% @spec set(tuple(), any()) -> ok
+%% @spec set(atom(), any()) -> ok
 %% @doc Sets global config value
 %% @end
 %%
--spec(set/2 :: (tuple(), any()) -> ok).	     
+-spec(set/2 :: (atom(), any()) -> ok).	     
 set(Key, Value) ->
     gen_server:call({global, ?MODULE}, {set, {Key, Value}}).
 
@@ -126,6 +126,15 @@ init(_Args) ->
     load_config_internal(),
     {ok, {}}.
 
+%%
+%% @spec handle_call(Request, From, State) -> {reply, Reply, State} |
+%%                                      {reply, Reply, State, Timeout} |
+%%                                      {noreply, State} |
+%%                                      {noreply, State, Timeout} |
+%%                                      {stop, Reason, Reply, State} |
+%%                                      {stop, Reason, State}
+%% @doc Handling call messages
+%%
 -spec(handle_call/3 :: (tuple() | atom(), pid(), any()) -> tuple()).
 handle_call(reload, _From, State) ->
     load_config_internal(),

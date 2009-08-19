@@ -112,7 +112,7 @@ process_controller_result(Request, {render, Controller, Action}) ->
     process_controller_result(Request, {render, Path});
 
 process_controller_result(_Request, {render, Path}) ->
-    Data = s_templates:render(Path, dict:new()),
+    Data = s_template:render(Path, dict:new()),
     #render_response{data=Data, content_type = "text/html", status_code=200}.
 
 
@@ -144,5 +144,5 @@ process_error(error_404) ->
 
 process_error({error, Type, Reason}) ->
     BackTrace = erlang:get_stacktrace(),
-    s_log:log(error, s_dispatcher, "Internal error ~p:~p~n~p", [Type, Reason, BackTrace]),
+    s_log:log(error, s_dispatcher, "Error while request processing: ~p:~p~n~p", [Type, Reason, BackTrace]),
     #render_response{data="<html><head></head><body><h1>Internal error</h1></body></body>", content_type = "text/html", status_code=500}.

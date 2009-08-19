@@ -11,11 +11,16 @@
 -define(MESSAGE_POLL, 1000).
 
 %% API
--export([log/4, start_link/0, flush/0]).
+-export([log/4, trace/3, debug/3, info/3, warn/3, error/3, fatal/3]).
+-export([start_link/0, start/0, flush/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
+
+
+%% Internal (for tests, etc)
+-export([terminate/0]).
 
 -record(state, {
           file_id :: term(),
@@ -28,8 +33,73 @@
 %%====================================================================
 %% API
 %%====================================================================
--spec(log/4 :: (atom(), atom(), string(), list()) ->
-             ok | skipped).
+
+%%
+%% @spec trace(atom(), string(), list()) -> ok | skipped)
+%% @doc Logs trace message
+%% @equiv s_log:log(trace, Module, Message, Params)
+%% @end
+%%
+-spec(trace(atom(), string(), list()) -> ok | skipped).
+trace(Module, Message, Params) ->
+    log(trace, Module, Message, Params).
+
+%%
+%% @spec debug(atom(), string(), list()) -> ok | skipped)
+%% @doc Logs debug message
+%% @equiv s_log:log(debug, Module, Message, Params)
+%% @end
+%%
+-spec(debug(atom(), string(), list()) -> ok | skipped).
+debug(Module, Message, Params) ->
+    log(debug, Module, Message, Params).
+
+%%
+%% @spec info(atom(), string(), list()) -> ok | skipped)
+%% @doc Logs info message
+%% @equiv s_log:log(info, Module, Message, Params)
+%% @end
+%%
+-spec(info(atom(), string(), list()) -> ok | skipped).
+info(Module, Message, Params) ->
+    log(info, Module, Message, Params).
+
+%%
+%% @spec warn(atom(), string(), list()) -> ok | skipped)
+%% @doc Logs warning message
+%% @equiv s_log:log(warn, Module, Message, Params)
+%% @end
+%%
+-spec(warn(atom(), string(), list()) -> ok | skipped).
+warn(Module, Message, Params) ->
+    log(warn, Module, Message, Params).
+
+%%
+%% @spec error(atom(), string(), list()) -> ok | skipped)
+%% @doc Logs error message
+%% @equiv s_log:log(error, Module, Message, Params)
+%% @end
+%%
+-spec(error(atom(), string(), list()) -> ok | skipped).
+error(Module, Message, Params) ->
+    log(error, Module, Message, Params).
+
+%%
+%% @spec fatal(atom(), string(), list()) -> ok | skipped)
+%% @doc Logs fatal error message
+%% @equiv s_log:log(fatal, Module, Message, Params)
+%% @end
+%%
+-spec(fatal(atom(), string(), list()) -> ok | skipped).
+fatal(Module, Message, Params) ->
+    log(fatal, Module, Message, Params).
+
+%%
+%% @spec log(atom(), atom(), string(), list()) -> ok | skipped
+%% @doc Logs message
+%% @end
+%%
+-spec(log(atom(), atom(), string(), list()) -> ok | skipped).
 log(Priority, Module, Message, Params) ->
     LogLevel = case s_context:get('__log_level') of
                    undefined -> 
@@ -45,14 +115,23 @@ log(Priority, Module, Message, Params) ->
         true -> skipped
     end.    
 
-%%--------------------------------------------------------------------
+%%
 %% @spec flush() -> ok
 %% @doc Force log flushing
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(flush() -> ok).
 flush() ->
     gen_server:call(?SERVER, flush).
+
+%%--------------------------------------------------------------------
+%% @spec start() -> {ok,Pid} | ignore | {error,Error}
+%% @doc Starts the server
+%% @end
+%%--------------------------------------------------------------------
+-spec(start/0 :: () -> {ok, pid()} | ignore | {error, any()}).
+start() ->
+    gen_server:start({local, ?SERVER}, ?MODULE, [], []).
 
 %%--------------------------------------------------------------------
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
@@ -62,6 +141,19 @@ flush() ->
 -spec(start_link/0 :: () -> {ok, pid()} | ignore | {error, any()}).
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+
+%%====================================================================
+%% Internal API
+%%====================================================================
+
+%%
+%% @doc Terminates server (for tests only)
+%% @private
+%% @end
+%%
+-spec(terminate/0 :: () -> ok).
+terminate() ->
+    gen_server:call(?SERVER, terminate).
 
 %%====================================================================
 %% gen_server callbacks
@@ -86,6 +178,7 @@ init([]) ->
         {error, Reason} -> {stop, Reason}
     end.
 
+
 %%--------------------------------------------------------------------
 %% @spec handle_call(Request, From, State) -> {reply, Reply, State} |
 %%                                      {reply, Reply, State, Timeout} |
@@ -98,6 +191,8 @@ init([]) ->
 -spec(handle_call/3 :: (any(), pid(), #state{}) -> tuple()).
 handle_call(flush, _From, State) ->
     {reply, ok, flush_messages(State)};
+handle_call(terminate, _From, State) ->
+    {stop, shutdown, ok, State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.

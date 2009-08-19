@@ -27,7 +27,7 @@ init_per_testcase(_TestCase, Config) ->
     s_conf:set(log_file, LogFile),
     s_conf:set(log_level, info),
     file:delete(LogFile),
-    s_log:start_link(),
+    s_log:start(),
     Config.
 
 end_per_testcase(_TestCase, _Config) ->

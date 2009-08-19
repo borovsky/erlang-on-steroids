@@ -9,3 +9,6 @@ lib/*/doc/*
 
 lib/*/test/logs
 logs/*.log
+
+lib/erlydtl-*/examples/rendered_output/
+lib/erlydtl-*/src/erlydtl/erlydtl_parser.erl

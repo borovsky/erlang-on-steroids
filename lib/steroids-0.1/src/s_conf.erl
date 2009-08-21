@@ -219,7 +219,8 @@ default_config() ->
      {ebin_dir, "app/ebin"},
      {routes_file, "config/routes.conf"},
      {log_file, "logs/development.log"},
-     {log_level, info}
+     {log_level, info},
+     {template_engines, [{s_erlydtl_adapter, ["dtl"]}]}
     ].
 
 %%

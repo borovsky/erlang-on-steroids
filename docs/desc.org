@@ -1,0 +1,78 @@
+#+STYLE: <style>
+#+STYLE: body {font-family:Verdana,Arial,Helvetica,sans-serif;font-size:90%;}
+#+STYLE: 
+#+STYLE: </style>
+
+#+TITLE: Steroids 0.1 released
+
+It's first release of this framework. Currently it's not production ready
+
+* Little FAQ
+**  One more web framework? Why?
+ 
+  I reviewed many frameworks (ErlyWeb, Erlang-Web, BeepBeep,
+  Nitrogen), but all of them didn't provide me all required
+  functionality Nearly the same to Ruby on Rails set:
+  
+  - RESTful routes
+  - MVC
+  - Different templating engines (One for generate XML like data
+    (HTML, XML), other for plaintext (JSON, CSV, etc))
+
+* Quick startup guide
+
+Currently steroids have no generators, so all things should be done manually.
+
+For example let's create simple "Hello world" application. Default
+configuration will be enough for this task
+
+** Step 1. Creating controller and views
+
+#+BEGIN_SRC erlang
+%'
+-module(test_controller).
+
+-export([index/1, hello/1]).
+
+index(_Params) ->
+    ok.
+
+hello(Params) ->
+    Name = case gb_trees:lookup("name") of
+               none -> "Anonymous";
+               "Hacker" -> "OMG! Hacker!";
+               _ -> _
+           end                   
+#+END_SRC
+
+
+* Directory structure
+#+BEGIN_EXAMPLE
+  app
+    \controllers
+    \views
+  bin
+  config
+  lib
+  logs
+  public
+  tmp
+#+END_EXAMPLE
+  
+ - *app/controllers* directory contains controllers. Currently
+   controllers have no namespaces
+ - *app/views* directory contains views. Template engine identified by
+   view extension.
+ - *app/ebin* used internally for compiled controllers/views
+ - *bin* directory contains useful scripts (currently only for startup
+   server)
+ - *config* directory contains:
+   - *application.conf* is main configuration file. You can read
+     configuration options description [[application.conf description][here]] details 
+   - *routes.conf* is file with routing configuration. You can read
+     about file format [[routes.conf description][here]].
+ - *lib* directory with Erlang OTP applications (such steroids
+   framework, erlydtl templating engine, etc)  
+ - *logs* directory contains application logs
+ - *public* directory contains static files (images, stylesheets, etc)
+ - *tmp* directory contains temporary stuff like uploaded files

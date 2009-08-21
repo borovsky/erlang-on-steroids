@@ -1,26 +1,15 @@
-%%%-------------------------------------------------------------------
-%%% File    : test_controller.erl
-%%% Author  : Alexander Borovsky <partizan@altlinux.ru>
-%%% Description : 
-%%%
-%%% Created : 16 Jul 2009 by Alexander Borovsky <partizan@altlinux.ru>
-%%%-------------------------------------------------------------------
 -module(test_controller).
 
-%% API
--export([test/1]).
+-export([index/1, hello/1]).
 
-%%====================================================================
-%% API
-%%====================================================================
-%%--------------------------------------------------------------------
-%% Function: 
-%% Description:
-%%--------------------------------------------------------------------
-
-test(_Params) ->
+index(_Params) ->
     ok.
 
-%%====================================================================
-%% Internal functions
-%%====================================================================
+hello(Params) ->
+    Name = case gb_trees:lookup("name") of
+               none -> "Anonymous";
+               "Hacker" -> "OMG! Hacker!";
+               Val -> Val
+           end,
+    s_context:put("name"),
+    ok.

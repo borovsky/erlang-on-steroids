@@ -29,14 +29,8 @@ behaviour_info(_Other) ->
 %%
 -spec(init() -> ok).
 init() ->
-    TemplateEnginesFile = s_conf:get(template_engines_file),
-    Engines = case file:consult(TemplateEnginesFile) of
-                  {ok, Content} -> Content;
-                  {error, Reason} -> 
-                      s_log:warn(?MODULE, "Can't load template definitions: ~p", [Reason]),
-                      default_template_definitions()
-              end,
-    compile_engines_definitions(Engines).
+    TemplateEngines = s_conf:get(template_engines),
+    compile_engines_definitions(TemplateEngines).
 
 %%
 %% @spec compile_and_load(string(), atom()) -> any()
@@ -98,15 +92,6 @@ get_module_name(Path) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-%%
-%% @spec default_template_definitions() -> list(tuple())
-%% @doc Returns default template definitions
-%% @private
-%% @end
-%%
--spec(default_template_definitions() -> list(tuple())).
-default_template_definitions() ->
-    [{s_erlydtl_adapter, ["dtl"]}].
 
 -spec(compile_engines_definitions(list(tuple())) -> ok).
 compile_engines_definitions(Engines) ->

@@ -4,8 +4,8 @@
 
 find_value(Key, L) when is_list(L) ->
     proplists:get_value(Key, L);
-find_value(Key, {GBSize, GBData}) when is_integer(GBSize) ->
-    case gb_trees:lookup(Key, {GBSize, GBData}) of
+find_value(Key, {GBSize, _} = Tree) when is_integer(GBSize) ->
+    case gb_trees:lookup(Key, Tree) of
         {value, Val} ->
             Val;
         _ ->
@@ -29,6 +29,24 @@ find_value(Key, Tuple) when is_tuple(Tuple) ->
                     undefined
             end
     end.
+
+extend_dict(Dict, Extendes) when is_list(Dict) ->
+    Extendes ++ Dict;
+
+extend_dict({GBSize, _} = Tree, Extendes)  when is_integer(GBSize) ->
+    lists:foldl(fun({Key, Value}, Acc) ->
+                        gb_trees:enter(Key, Value, Acc)
+                end, Tree, Extendes);
+extend_dict(Dict, Extendes) when is_tuple(Dict) ->
+    Module = element(1, Dict),
+    case Module of
+        dict -> lists:foldl(fun({Key, Value}, Acc) ->
+                            dict:store(Key, Value, Acc)
+                    end, Dict, Extendes);
+        Module ->
+            throw(can_not_extend_tuples)
+    end.
+                
 
 fetch_value(Key, Data) ->
     case find_value(Key, Data) of
@@ -106,3 +124,4 @@ increment_counter_stats([{counter, Counter}, {counter0, Counter0}, {revcounter, 
 
 cycle(NamesTuple, Counters) when is_tuple(NamesTuple) ->
     element(fetch_value(counter0, Counters) rem size(NamesTuple) + 1, NamesTuple).
+

@@ -34,6 +34,7 @@
 -module(erlydtl_compiler).
 -author('rsaccon@gmail.com').
 -author('emmiller@gmail.com').
+-author('alex.borovsky@gmail.com').
 
 %% --------------------------------------------------------------------
 %% Definitions
@@ -41,26 +42,16 @@
 -export([compile/2, compile/3]).
 
 -record(dtl_context, {
-    local_scopes = [], 
-    block_dict = dict:new(), 
-    auto_escape = off, 
-    doc_root = "", 
-    parse_trail = [],
-    vars = [],
-    custom_tags_dir = [],
-    reader = {file, read_file},
-    module = [],
-    compiler_options = [verbose, report_errors],
-    force_recompile = false}).
-
--record(ast_info, {
-    dependencies = [],
-    var_names = [],
-    pre_render_asts = []}).
-    
--record(treewalker, {
-    counter = 0,
-    custom_tags = []}).    
+          local_scopes = [], 
+          auto_escape = off, 
+          parse_trail = [],
+          debug = false,
+          reader = {file, read_file},
+          module = [],
+          renderer_module = erlydtl_renderer,
+          renderer_params,
+          compiler_options = [verbose, report_errors],
+          write_erl_to = none}).
 
 compile(Binary, Module) when is_binary(Binary) ->
     compile(Binary, Module, []);
@@ -70,11 +61,10 @@ compile(File, Module) ->
 
 compile(Binary, Module, Options) when is_binary(Binary) ->
     File = "",
-    CheckSum = "",
     case parse(Binary) of
         {ok, DjangoParseTree} ->
             case compile_to_binary(File, DjangoParseTree, 
-                    init_dtl_context(File, Module, Options), CheckSum) of
+                    init_dtl_context(File, Module, Options)) of
                 {ok, Module1, _} ->
                     {ok, Module1};
                 Err ->
@@ -85,13 +75,10 @@ compile(Binary, Module, Options) when is_binary(Binary) ->
     end;
     
 compile(File, Module, Options) ->  
-    crypto:start(),
     Context = init_dtl_context(File, Module, Options),
     case parse(File, Context) of  
-        ok ->
-            ok;
-        {ok, DjangoParseTree, CheckSum} ->
-            case compile_to_binary(File, DjangoParseTree, Context, CheckSum) of
+        {ok, DjangoParseTree} ->
+            case compile_to_binary(File, DjangoParseTree, Context) of
                 {ok, Module1, Bin} ->
                     case proplists:get_value(out_dir, Options) of
                         undefined ->
@@ -117,10 +104,19 @@ compile(File, Module, Options) ->
 %% Internal functions
 %%====================================================================
 
-compile_to_binary(File, DjangoParseTree, Context, CheckSum) ->
-    try body_ast(DjangoParseTree, Context, #treewalker{}) of
-        {{Ast, Info}, _} ->
-            case compile:forms(forms(File, Context#dtl_context.module, Ast, Info, CheckSum), 
+compile_to_binary(File, DjangoParseTree, Context) ->
+    try body_ast(DjangoParseTree, Context) of
+        Ast ->
+            %io:format("Ast for ~p: ~p~n", [Context#dtl_context.module, Ast]),
+            Forms = forms(Context#dtl_context.module, Ast),
+            case Context#dtl_context.write_erl_to of
+                none -> none;
+                ErlFile -> 
+                    file:write_file(ErlFile ++ ".dump", io_lib:format("~p~n", [Forms])),
+                    Res = lists:map(fun(Par) -> [erl_prettypr:format(Par), "\n"] end, Forms),
+                    file:write_file(ErlFile, Res)
+            end,
+            case compile:forms(Forms, 
                     Context#dtl_context.compiler_options) of
                 {ok, Module1, Bin} -> 
                     code:purge(Module1),
@@ -144,55 +140,19 @@ init_dtl_context(File, Module, Options) ->
     #dtl_context{
         parse_trail = [File], 
         module = Module,
-        doc_root = proplists:get_value(doc_root, Options, filename:dirname(File)),
-        custom_tags_dir = proplists:get_value(custom_tags_dir, Options, Ctx#dtl_context.custom_tags_dir),
-        vars = proplists:get_value(vars, Options, Ctx#dtl_context.vars), 
+        debug = proplists:get_value(debug, Options, Ctx#dtl_context.debug), 
         reader = proplists:get_value(reader, Options, Ctx#dtl_context.reader),
         compiler_options = proplists:get_value(compiler_options, Options, Ctx#dtl_context.compiler_options),
-        force_recompile = proplists:get_value(force_recompile, Options, Ctx#dtl_context.force_recompile)}.
+        renderer_params = proplists:get_value(renderer_params, Options, none), 
+        renderer_module = proplists:get_value(renderer_module, Options, erlydtl_renderer), 
+        write_erl_to = proplists:get_value(write_erl_to, Options, Ctx#dtl_context.write_erl_to)}.
 
 
-is_up_to_date(_, #dtl_context{force_recompile = true}) ->
-    false;
-is_up_to_date(CheckSum, Context) ->
-    Module = Context#dtl_context.module,
-    {M, F} = Context#dtl_context.reader,
-    case catch Module:source() of
-        {_, CheckSum} -> 
-            case catch Module:dependencies() of
-                L when is_list(L) ->
-                    RecompileList = lists:foldl(fun
-                            ({XFile, XCheckSum}, Acc) ->
-                                case catch M:F(XFile) of
-                                    {ok, Data} ->
-                                        case binary_to_list(crypto:sha(Data)) of
-                                            XCheckSum ->
-                                                Acc;
-                                            _ ->
-                                                [recompile | Acc]
-                                        end;
-                                    _ ->
-                                        [recompile | Acc]
-                                end                                        
-                        end, [], L),
-                    case RecompileList of
-                        [] -> true; 
-                        _ -> false
-                    end;
-                _ ->
-                    false
-            end;
-        _ ->
-            false
-    end.
-    
-    
 parse(File, Context) ->  
     {M, F} = Context#dtl_context.reader,
     case catch M:F(File) of
         {ok, Data} ->
-            CheckSum = binary_to_list(crypto:sha(Data)),
-            case parse(CheckSum, Data, Context) of
+            case parse(Data) of
                 {error, Msg} when is_list(Msg) ->
                     {error, File ++ ": " ++ Msg};
                 Result ->
@@ -202,19 +162,6 @@ parse(File, Context) ->
             {error, "reading " ++ File ++ " failed "}
     end.
         
-parse(CheckSum, Data, Context) ->
-    case is_up_to_date(CheckSum, Context) of
-        true ->
-            ok;
-        _ ->
-            case parse(Data) of
-                {ok, Val} ->
-                    {ok, Val, CheckSum};
-                Err ->
-                    Err
-            end
-    end.
-
 parse(Data) ->
     case erlydtl_scanner:scan(binary_to_list(Data)) of
         {ok, Tokens} ->
@@ -223,7 +170,7 @@ parse(Data) ->
             Err
     end.        
   
-forms(File, Module, BodyAst, BodyInfo, CheckSum) ->
+forms(Module, BodyAst) ->
     Render0FunctionAst = erl_syntax:function(erl_syntax:atom(render),
         [erl_syntax:clause([], none, [erl_syntax:application(none, 
                         erl_syntax:atom(render), [erl_syntax:list([])])])]),
@@ -236,249 +183,182 @@ forms(File, Module, BodyAst, BodyInfo, CheckSum) ->
     Render1FunctionAst = erl_syntax:function(erl_syntax:atom(render),
         [erl_syntax:clause([erl_syntax:variable("Variables")], none, 
             [erl_syntax:try_expr([Function2], [ClauseOk], [ClauseCatch])])]),  
-     
-    SourceFunctionTuple = erl_syntax:tuple(
-        [erl_syntax:string(File), erl_syntax:string(CheckSum)]),
-    SourceFunctionAst = erl_syntax:function(
-        erl_syntax:atom(source),
-            [erl_syntax:clause([], none, [SourceFunctionTuple])]),
-    
-    DependenciesFunctionAst = erl_syntax:function(
-        erl_syntax:atom(dependencies), [erl_syntax:clause([], none, 
-            [erl_syntax:list(lists:map(fun 
-                    ({XFile, XCheckSum}) -> 
-                        erl_syntax:tuple([erl_syntax:string(XFile), erl_syntax:string(XCheckSum)])
-                end, BodyInfo#ast_info.dependencies))])]),     
-
-   BodyAstTmp = erl_syntax:application(
-                    erl_syntax:atom(erlydtl_runtime),
-                    erl_syntax:atom(stringify_final),
-                    [BodyAst]
-                ),
 
     RenderInternalFunctionAst = erl_syntax:function(
         erl_syntax:atom(render2), 
-            [erl_syntax:clause([erl_syntax:variable("Variables")], none, 
-                [BodyAstTmp])]),   
+            [             
+             erl_syntax:clause([erl_syntax:variable("Variables")], none, 
+                [BodyAst])]),   
     
     ModuleAst  = erl_syntax:attribute(erl_syntax:atom(module), [erl_syntax:atom(Module)]),
     
     ExportAst = erl_syntax:attribute(erl_syntax:atom(export),
         [erl_syntax:list([erl_syntax:arity_qualifier(erl_syntax:atom(render), erl_syntax:integer(0)),
-                    erl_syntax:arity_qualifier(erl_syntax:atom(render), erl_syntax:integer(1)),
-                    erl_syntax:arity_qualifier(erl_syntax:atom(source), erl_syntax:integer(0)),
-                    erl_syntax:arity_qualifier(erl_syntax:atom(dependencies), erl_syntax:integer(0))])]),
-    
+                    erl_syntax:arity_qualifier(erl_syntax:atom(render), erl_syntax:integer(1))])]),
+
+
     [erl_syntax:revert(X) || X <- [ModuleAst, ExportAst, Render0FunctionAst,
-            Render1FunctionAst, SourceFunctionAst, DependenciesFunctionAst, RenderInternalFunctionAst
-            | BodyInfo#ast_info.pre_render_asts]].    
+            Render1FunctionAst, RenderInternalFunctionAst]].    
 
         
 % child templates should only consist of blocks at the top level
-body_ast([{extends, {string_literal, _Pos, String}} | ThisParseTree], Context, TreeWalker) ->
-    File = full_path(unescape_string_literal(String), Context#dtl_context.doc_root),
-    case lists:member(File, Context#dtl_context.parse_trail) of
-        true ->
-            throw({error, "Circular file inclusion!"});
-        _ ->
-            case parse(File, Context) of
-                {ok, ParentParseTree, CheckSum} ->
-                    BlockDict = lists:foldl(
-                        fun
-                            ({block, {identifier, _, Name}, Contents}, Dict) ->
-                                dict:store(Name, Contents, Dict);
-                            (_, Dict) ->
-                                Dict
-                        end, dict:new(), ThisParseTree),
-                    with_dependency({File, CheckSum}, body_ast(ParentParseTree, Context#dtl_context{
-                        block_dict = dict:merge(fun(_Key, _ParentVal, ChildVal) -> ChildVal end,
-                            BlockDict, Context#dtl_context.block_dict),
-                                parse_trail = [File | Context#dtl_context.parse_trail]}, TreeWalker));
-                Err ->
-                    throw(Err)
-            end        
-    end;
+body_ast([{extends, File} | ThisParseTree], Context) ->
+    AddBlocksAsts = lists:foldl(
+                      fun
+                          ({block, {identifier, _, BlockName}, Contents}, Ast) ->
+                              erl_syntax:application(erl_syntax:atom(Context#dtl_context.renderer_module),
+                                           erl_syntax:atom(set_block),
+                                                      [erl_syntax:string(BlockName), 
+                                           body_ast(Contents, Context), Ast]);
+                          (_, Ast) ->
+                              Ast
+                      end, erl_syntax:variable("Variables"), ThisParseTree),
+    
+    FileAst = resolve_variable_or_value_ast(File, Context),
+    include_ast(FileAst, AddBlocksAsts, Context);
  
     
-body_ast(DjangoParseTree, Context, TreeWalker) ->
-    {AstInfoList, TreeWalker2} = lists:mapfoldl(
+body_ast(DjangoParseTree, Context) ->
+    AstInfoList = lists:map(
         fun
-            ({'block', {identifier, _, Name}, Contents}, TreeWalkerAcc) ->
-                Block = case dict:find(Name, Context#dtl_context.block_dict) of
-                    {ok, ChildBlock} ->
-                        ChildBlock;
-                    _ ->
-                        Contents
-                end,
-                body_ast(Block, Context, TreeWalkerAcc);
-            ({'comment', _Contents}, TreeWalkerAcc) ->
-                empty_ast(TreeWalkerAcc);
-            ({'date', 'now', {string_literal, _Pos, FormatString}}, TreeWalkerAcc) ->
-                now_ast(FormatString, Context, TreeWalkerAcc);
-            ({'autoescape', {identifier, _, OnOrOff}, Contents}, TreeWalkerAcc) ->
-                body_ast(Contents, Context#dtl_context{auto_escape = list_to_atom(OnOrOff)}, 
-                    TreeWalkerAcc);
-            ({'text', _Pos, String}, TreeWalkerAcc) -> 
-                string_ast(String, TreeWalkerAcc);
-            ({'string_literal', _Pos, String}, TreeWalkerAcc) ->
-                {{auto_escape(erl_syntax:string(unescape_string_literal(String)), Context), 
-                        #ast_info{}}, TreeWalkerAcc};
-            ({'number_literal', _Pos, Number}, TreeWalkerAcc) ->
-                string_ast(Number, TreeWalkerAcc);
-            ({'attribute', _} = Variable, TreeWalkerAcc) ->
-                {Ast, VarName} = resolve_variable_ast(Variable, Context),
-                {{format(Ast, Context), #ast_info{var_names = [VarName]}}, TreeWalkerAcc};
-            ({'variable', _} = Variable, TreeWalkerAcc) ->
-                {Ast, VarName} = resolve_variable_ast(Variable, Context),
-                {{format(Ast, Context), #ast_info{var_names = [VarName]}}, TreeWalkerAcc};              
-            ({'include', {string_literal, _, File}}, TreeWalkerAcc) ->
-                include_ast(unescape_string_literal(File), Context, TreeWalkerAcc);
-            ({'if', {'not', Variable}, Contents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = empty_ast(TreeWalkerAcc),
-                {ElseAstInfo, TreeWalker2} = body_ast(Contents, Context, TreeWalker1),
-                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context, TreeWalker2);
-            ({'if', Variable, Contents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = body_ast(Contents, Context, TreeWalkerAcc),
-                {ElseAstInfo, TreeWalker2} = empty_ast(TreeWalker1),
-                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context, TreeWalker2);
-            ({'ifelse', {'not', Variable}, IfContents, ElseContents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = body_ast(ElseContents, Context, TreeWalkerAcc),
-                {ElseAstInfo, TreeWalker2} = body_ast(IfContents, Context, TreeWalker1),
-                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context, TreeWalker2);                  
-            ({'ifelse', Variable, IfContents, ElseContents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = body_ast(IfContents, Context, TreeWalkerAcc),
-                {ElseAstInfo, TreeWalker2} = body_ast(ElseContents, Context, TreeWalker1),
-                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context, TreeWalker2);
-            ({'ifequal', Args, Contents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = body_ast(Contents, Context, TreeWalkerAcc),
-                {ElseAstInfo, TreeWalker2} = empty_ast(TreeWalker1),
-                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context, TreeWalker2);
-            ({'ifequalelse', Args, IfContents, ElseContents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = body_ast(IfContents, Context, TreeWalkerAcc), 
-                {ElseAstInfo, TreeWalker2} = body_ast(ElseContents, Context,TreeWalker1),
-                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context, TreeWalker2);                
-            ({'ifnotequal', Args, Contents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = empty_ast(TreeWalkerAcc),
-                {ElseAstInfo, TreeWalker2} = body_ast(Contents, Context, TreeWalker1),
-                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context, TreeWalker2);
-            ({'ifnotequalelse', Args, IfContents, ElseContents}, TreeWalkerAcc) ->
-                {IfAstInfo, TreeWalker1} = body_ast(ElseContents, Context, TreeWalkerAcc),
-                {ElseAstInfo, TreeWalker2} = body_ast(IfContents, Context, TreeWalker1),
-                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context, TreeWalker2);                    
-            ({'apply_filter', Variable, Filter}, TreeWalkerAcc) ->
-                filter_ast(Variable, Filter, Context, TreeWalkerAcc);
-            ({'for', {'in', IteratorList, Variable}, Contents}, TreeWalkerAcc) ->
-                for_loop_ast(IteratorList, Variable, Contents, Context, TreeWalkerAcc);
-            ({'load', Names}, TreeWalkerAcc) ->
-                load_ast(Names, Context, TreeWalkerAcc);
-            ({'tag', {identifier, _, Name}, Args}, TreeWalkerAcc) ->
-                tag_ast(Name, Args, Context, TreeWalkerAcc);            
-            ({'call', {'identifier', _, Name}}, TreeWalkerAcc) ->
-            	call_ast(Name, TreeWalkerAcc);
-            ({'call', {'identifier', _, Name}, With}, TreeWalkerAcc) ->
-            	call_with_ast(Name, With, Context, TreeWalkerAcc);
-            ({'cycle', Names}, TreeWalkerAcc) ->
-                cycle_ast(Names, Context, TreeWalkerAcc);
-            ({'cycle_compat', Names}, TreeWalkerAcc) ->
-                cycle_compat_ast(Names, Context, TreeWalkerAcc)
-        end, TreeWalker, DjangoParseTree),   
-    {AstList, {Info, TreeWalker3}} = lists:mapfoldl(
-        fun({Ast, Info}, {InfoAcc, TreeWalkerAcc}) -> 
-                PresetVars = lists:foldl(fun
-                        (X, Acc) ->
-                            case proplists:lookup(list_to_atom(X), Context#dtl_context.vars) of
-                                none ->
-                                    Acc;
-                                Val ->
-                                    [erl_syntax:abstract(Val) | Acc]
-                            end
-                    end, [], Info#ast_info.var_names),
-                case PresetVars of
-                    [] ->
-                        {Ast, {merge_info(Info, InfoAcc), TreeWalkerAcc}};
-                    _ ->
-                        Counter = TreeWalkerAcc#treewalker.counter,
-                        Name = lists:concat([pre_render, Counter]),
-                        Ast1 = erl_syntax:application(none, erl_syntax:atom(Name),
-                            [erl_syntax:list(PresetVars)]),
-                        PreRenderAst = erl_syntax:function(erl_syntax:atom(Name),
-                            [erl_syntax:clause([erl_syntax:variable("Variables")], none, [Ast])]),
-                        PreRenderAsts = Info#ast_info.pre_render_asts,
-                        Info1 = Info#ast_info{pre_render_asts = [PreRenderAst | PreRenderAsts]},     
-                        {Ast1, {merge_info(Info1, InfoAcc), TreeWalkerAcc#treewalker{counter = Counter + 1}}}
-                end
-        end, {#ast_info{}, TreeWalker2}, AstInfoList),
-    {{erl_syntax:list(AstList), Info}, TreeWalker3}.
+            ({'block', {identifier, _, Name}, Contents}) ->
+                block_ast(Name, Contents, Context);
+            ({'comment', _Contents}) ->
+                empty_ast();
+            ({'date', 'now', {string_literal, _Pos, FormatString}}) ->
+                now_ast(FormatString, Context);
+            ({'autoescape', {identifier, _, OnOrOff}, Contents}) ->
+                body_ast(Contents, Context#dtl_context{auto_escape = list_to_atom(OnOrOff)});
+            ({'text', _Pos, String}) -> 
+                string_ast(String, Context);
+            ({'string_literal', _Pos, String}) ->
+                auto_escape(erl_syntax:string(unescape_string_literal(String)), Context);
+            ({'number_literal', _Pos, Number}) ->
+                string_ast(Number, Context);
+            ({'attribute', _} = Variable) ->
+                {Ast, _VarName} = resolve_variable_ast(Variable, Context),
+                format(Ast, Context);
+            ({'variable', _} = Variable) ->
+                {Ast, _VarName} = resolve_variable_ast(Variable, Context),
+                format(Ast, Context);              
+            ({'include', Path}) ->
+                PathAst = resolve_variable_or_value_ast(Path, Context),
+                include_ast(PathAst, Context);
+            ({'if', {'not', Variable}, Contents}) ->
+                IfAstInfo = empty_ast(),
+                ElseAstInfo = body_ast(Contents, Context),
+                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context);
+            ({'if', Variable, Contents}) ->
+                IfAstInfo = body_ast(Contents, Context),
+                ElseAstInfo = empty_ast(),
+                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context);
+            ({'ifelse', {'not', Variable}, IfContents, ElseContents}) ->
+                IfAstInfo = body_ast(ElseContents, Context),
+                ElseAstInfo = body_ast(IfContents, Context),
+                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context);                  
+            ({'ifelse', Variable, IfContents, ElseContents}) ->
+                IfAstInfo = body_ast(IfContents, Context),
+                ElseAstInfo = body_ast(ElseContents, Context),
+                ifelse_ast(Variable, IfAstInfo, ElseAstInfo, Context);
+            ({'ifequal', Args, Contents}) ->
+                IfAstInfo = body_ast(Contents, Context),
+                ElseAstInfo = empty_ast(),
+                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context);
+            ({'ifequalelse', Args, IfContents, ElseContents}) ->
+                IfAstInfo = body_ast(IfContents, Context), 
+                ElseAstInfo = body_ast(ElseContents, Context),
+                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context);                
+            ({'ifnotequal', Args, Contents}) ->
+                IfAstInfo = empty_ast(),
+                ElseAstInfo = body_ast(Contents, Context),
+                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context);
+            ({'ifnotequalelse', Args, IfContents, ElseContents}) ->
+                IfAstInfo = body_ast(ElseContents, Context),
+                ElseAstInfo = body_ast(IfContents, Context),
+                ifequalelse_ast(Args, IfAstInfo, ElseAstInfo, Context);
+            ({'apply_filter', Variable, Filter}) ->
+                filter_ast(Variable, Filter, Context);
+            ({'for', {'in', IteratorList, Variable}, Contents}) ->
+                for_loop_ast(IteratorList, Variable, Contents, Context);
+            ({'cycle', Names}) ->
+                cycle_ast(Names, Context);
+            ({'cycle_compat', Names}) ->
+                cycle_compat_ast(Names, Context)
+        end, DjangoParseTree),   
+    erl_syntax:list(AstInfoList).
+
+block_ast(Name, Contents, Context) ->
+    NameAst = erl_syntax:string(Name),
+    ContextAst = erl_syntax:variable("Variables"),
+    RenderModuleAst = erl_syntax:atom(Context#dtl_context.renderer_module),
+
+    BlockCheckAst = erl_syntax:application(RenderModuleAst,
+                                           erl_syntax:atom(have_child_block), 
+                                           [NameAst, ContextAst]),
+    TrueAst = erl_syntax:clause([erl_syntax:atom(true)], none, 
+                                [erl_syntax:application(
+                                   RenderModuleAst,
+                                   erl_syntax:atom(render_block), 
+                                   [NameAst, ContextAst])]),
+
+    NewContextAst = erl_syntax:variable("NewContext"),
+    FalseCaseAst = [erl_syntax:match_expr(NewContextAst,
+                    erl_syntax:application(RenderModuleAst,
+                                           erl_syntax:atom(set_block),
+                                           [NameAst, 
+                                            body_ast(Contents, Context), ContextAst])),
+                    erl_syntax:application(
+                      RenderModuleAst,
+                      erl_syntax:atom(render_block), 
+                      [NameAst, NewContextAst])
+                   ],
+    FalseAst = erl_syntax:clause([erl_syntax:atom(false)], none, FalseCaseAst),
+    erl_syntax:case_expr(BlockCheckAst, [TrueAst, FalseAst]).
+
+resolve_variable_or_value_ast({string_literal, _, Literal}, _Context) ->
+    erl_syntax:string(unescape_string_literal(Literal));
+resolve_variable_or_value_ast({number_literal, _, Literal}, _Context) ->
+    erl_syntax:integer(list_to_integer(Literal));
+resolve_variable_or_value_ast(Variable, Context) ->
+    {Ast, _VarName} = resolve_variable_ast(Variable, Context),
+    Ast.
 
 
-merge_info(Info1, Info2) ->
-    #ast_info{dependencies = 
-        lists:merge(
-            lists:sort(Info1#ast_info.dependencies), 
-            lists:sort(Info2#ast_info.dependencies)),
-        var_names = 
-            lists:merge(
-                lists:sort(Info1#ast_info.var_names), 
-                lists:sort(Info2#ast_info.var_names)),
-        pre_render_asts = 
-            lists:merge(
-                Info1#ast_info.pre_render_asts,
-                Info2#ast_info.pre_render_asts)}.
+empty_ast() ->
+    erl_syntax:list([]).
 
 
-with_dependencies([], Args) ->
-    Args;
-with_dependencies([H, T], Args) ->
-     with_dependencies(T, with_dependency(H, Args)).
-        
-with_dependency(FilePath, {{Ast, Info}, TreeWalker}) ->
-    {{Ast, Info#ast_info{dependencies = [FilePath | Info#ast_info.dependencies]}}, TreeWalker}.
-
-
-empty_ast(TreeWalker) ->
-    {{erl_syntax:list([]), #ast_info{}}, TreeWalker}.
-
-
-string_ast(String, TreeWalker) ->
-    {{erl_syntax:string(String), #ast_info{}}, TreeWalker}. %% less verbose AST, better for development and debugging
-    % {{erl_syntax:binary([erl_syntax:binary_field(erl_syntax:integer(X)) || X <- String]), #ast_info{}}, TreeWalker}.       
-
-
-include_ast(File, Context, TreeWalker) ->
-    FilePath = full_path(File, Context#dtl_context.doc_root),
-    case parse(FilePath, Context) of
-        {ok, InclusionParseTree, CheckSum} ->
-            with_dependency({FilePath, CheckSum}, body_ast(InclusionParseTree, Context#dtl_context{
-                parse_trail = [FilePath | Context#dtl_context.parse_trail]}, TreeWalker));
-        Err ->
-            throw(Err)
+string_ast(String, Context) ->
+    case Context#dtl_context.debug of
+        true ->
+            erl_syntax:string(String); %% less verbose AST, better for development and debugging
+        _ ->
+            erl_syntax:binary([erl_syntax:binary_field(erl_syntax:integer(X)) || X <- String])
     end.
-    
 
-filter_ast(Variable, Filter, Context, TreeWalker) ->
+filter_ast(Variable, Filter, Context) ->
     % the escape filter is special; it is always applied last, so we have to go digging for it
 
     % AutoEscape = 'did' means we (will have) decided whether to escape the current variable,
     % so don't do any more escaping
-    {{UnescapedAst, Info}, TreeWalker2} = filter_ast_noescape(Variable, Filter, 
-        Context#dtl_context{auto_escape = did}, TreeWalker),
+    UnescapedAst = filter_ast_noescape(Variable, Filter, 
+        Context#dtl_context{auto_escape = did}),
     case search_for_escape_filter(Variable, Filter, Context) of
         on ->
-            {{erl_syntax:application(
+            erl_syntax:application(
                     erl_syntax:atom(erlydtl_filters), 
                     erl_syntax:atom(force_escape), 
-                    [UnescapedAst]), 
-                Info}, TreeWalker2};
+                    [UnescapedAst]);
         _ ->
-            {{UnescapedAst, Info}, TreeWalker2}
+            UnescapedAst
     end.
 
-filter_ast_noescape(Variable, [{identifier, _, "escape"}], Context, TreeWalker) ->
-    body_ast([Variable], Context, TreeWalker);
-filter_ast_noescape(Variable, Filter, Context, TreeWalker) ->
-    {{VariableAst, Info}, TreeWalker2} = body_ast([Variable], Context, TreeWalker),
+filter_ast_noescape(Variable, [{identifier, _, "escape"}], Context) ->
+    body_ast([Variable], Context);
+filter_ast_noescape(Variable, Filter, Context) ->
+    VariableAst = body_ast([Variable], Context),
     VarValue = filter_ast1(Filter, VariableAst),
-    {{VarValue, Info}, TreeWalker2}.
+    VarValue.
 
 filter_ast1([{identifier, _, Name} | Arg], VariableAst) ->
     erl_syntax:application(erl_syntax:atom(erlydtl_filters), erl_syntax:atom(Name), 
@@ -563,63 +443,59 @@ auto_escape(Value, Context) ->
     end.
 
 
-ifelse_ast(Variable, {IfContentsAst, IfContentsInfo}, {ElseContentsAst, ElseContentsInfo}, Context, TreeWalker) ->
-    Info = merge_info(IfContentsInfo, ElseContentsInfo),
-    VarNames = Info#ast_info.var_names,
-    {Ast, VarName} = resolve_ifvariable_ast(Variable, Context),
-    {{erl_syntax:case_expr(erl_syntax:application(erl_syntax:atom(erlydtl_runtime), erl_syntax:atom(is_false), [Ast]),
+ifelse_ast(Variable, IfContentsAst, ElseContentsAst, Context) ->
+    {Ast, _VarName} = resolve_ifvariable_ast(Variable, Context),
+    erl_syntax:case_expr(erl_syntax:application(erl_syntax:atom(erlydtl_runtime), erl_syntax:atom(is_false), [Ast]),
         [erl_syntax:clause([erl_syntax:atom(true)], none, 
                 [ElseContentsAst]),
             erl_syntax:clause([erl_syntax:underscore()], none,
                 [IfContentsAst])
-        ]), Info#ast_info{var_names = [VarName | VarNames]}}, TreeWalker}.
+        ]).
 
         
-ifequalelse_ast(Args, {IfContentsAst, IfContentsInfo}, {ElseContentsAst, ElseContentsInfo}, Context, TreeWalker) ->
-    Info = merge_info(IfContentsInfo, ElseContentsInfo),
-    {[Arg1Ast, Arg2Ast], VarNames} = lists:foldl(fun
-            (X, {Asts, AccVarNames}) ->
+ifequalelse_ast(Args, IfContentsAst, ElseContentsAst, Context) ->
+    [Arg1Ast, Arg2Ast] = lists:foldl(fun
+            (X, Asts) ->
                 case X of
                     {string_literal, _, Literal} ->
-                        {[erl_syntax:string(unescape_string_literal(Literal)) | Asts], AccVarNames};
+                        [erl_syntax:string(unescape_string_literal(Literal)) | Asts];
                     {number_literal, _, Literal} ->
-                        {[erl_syntax:integer(list_to_integer(Literal)) | Asts], AccVarNames};
+                        [erl_syntax:integer(list_to_integer(Literal)) | Asts];
                     Variable ->
-                        {Ast, VarName} = resolve_ifvariable_ast(Variable, Context),
-                        {[Ast | Asts], [VarName | AccVarNames]}
+                        {Ast, _VarName} = resolve_ifvariable_ast(Variable, Context),
+                        [Ast | Asts]
                 end                
         end,
-        {[], Info#ast_info.var_names},
+        [],
         Args),
-    Ast = erl_syntax:case_expr(erl_syntax:application(erl_syntax:atom(erlydtl_runtime), erl_syntax:atom(are_equal),
+    erl_syntax:case_expr(erl_syntax:application(erl_syntax:atom(erlydtl_runtime), erl_syntax:atom(are_equal),
             [Arg1Ast, Arg2Ast]),
         [
             erl_syntax:clause([erl_syntax:atom(true)], none, [IfContentsAst]),
             erl_syntax:clause([erl_syntax:underscore()], none, [ElseContentsAst])
-        ]),
-    {{Ast, Info#ast_info{var_names = VarNames}}, TreeWalker}.         
+        ]).
 
 
-for_loop_ast(IteratorList, Variable, Contents, Context, TreeWalker) ->
+for_loop_ast(IteratorList, Variable, Contents, Context) ->
     Vars = lists:map(fun({identifier, _, Iterator}) -> 
                     erl_syntax:variable("Var_" ++ Iterator) 
             end, IteratorList),
-    {{InnerAst, Info}, TreeWalker2} = body_ast(Contents,
+    InnerAst = body_ast(Contents,
         Context#dtl_context{local_scopes = [
                 [{'forloop', erl_syntax:variable("Counters")} | lists:map(
                     fun({identifier, _, Iterator}) ->
                             {list_to_atom(Iterator), erl_syntax:variable("Var_" ++ Iterator)} 
-                    end, IteratorList)] | Context#dtl_context.local_scopes]}, TreeWalker),
+                    end, IteratorList)] | Context#dtl_context.local_scopes]}),
     CounterAst = erl_syntax:application(erl_syntax:atom(erlydtl_runtime), 
         erl_syntax:atom(increment_counter_stats), [erl_syntax:variable("Counters")]),
-    {ListAst, VarName} = resolve_variable_ast(Variable, Context),
+    {ListAst, _VarName} = resolve_variable_ast(Variable, Context),
     CounterVars0 = case resolve_scoped_variable_ast("forloop", Context) of
         undefined ->
             erl_syntax:application(erl_syntax:atom(erlydtl_runtime), erl_syntax:atom(init_counter_stats), [ListAst]);
         Value ->
             erl_syntax:application(erl_syntax:atom(erlydtl_runtime), erl_syntax:atom(init_counter_stats), [ListAst, Value])
     end,
-    {{erl_syntax:application(
+    erl_syntax:application(
             erl_syntax:atom('erlang'), erl_syntax:atom('element'),
             [erl_syntax:integer(1), erl_syntax:application(
                     erl_syntax:atom('lists'), erl_syntax:atom('mapfoldl'),
@@ -630,14 +506,9 @@ for_loop_ast(IteratorList, Variable, Contents, Context, TreeWalker) ->
                                         _ -> [erl_syntax:list(Vars), erl_syntax:variable("Counters")] end, none, 
                                     [erl_syntax:tuple([InnerAst, CounterAst])])
                             ]),
-                        CounterVars0, ListAst])]),
-                Info#ast_info{var_names = [VarName]}}, TreeWalker2}.
+                        CounterVars0, ListAst])]).
 
-load_ast(Names, _Context, TreeWalker) ->
-    CustomTags = lists:merge([X || {identifier, _ , X} <- Names], TreeWalker#treewalker.custom_tags),
-    {{erl_syntax:list([]), #ast_info{}}, TreeWalker#treewalker{custom_tags = CustomTags}}.  
-
-cycle_ast(Names, Context, TreeWalker) ->
+cycle_ast(Names, Context) ->
     NamesTuple = lists:map(fun({string_literal, _, Str}) ->
                                    erl_syntax:string(unescape_string_literal(Str));
                               ({variable, _}=Var) ->
@@ -648,28 +519,27 @@ cycle_ast(Names, Context, TreeWalker) ->
                               (_) ->
                                    []
                            end, Names),
-    {{erl_syntax:application(
+    erl_syntax:application(
         erl_syntax:atom('erlydtl_runtime'), erl_syntax:atom('cycle'),
-        [erl_syntax:tuple(NamesTuple), erl_syntax:variable("Counters")]), #ast_info{}}, TreeWalker}.
+        [erl_syntax:tuple(NamesTuple), erl_syntax:variable("Counters")]).
 
 %% Older Django templates treat cycle with comma-delimited elements as strings
-cycle_compat_ast(Names, _Context, TreeWalker) ->
+cycle_compat_ast(Names, _Context) ->
     NamesTuple = [erl_syntax:string(X) || {identifier, _, X} <- Names],
-    {{erl_syntax:application(
+    erl_syntax:application(
         erl_syntax:atom('erlydtl_runtime'), erl_syntax:atom('cycle'),
-        [erl_syntax:tuple(NamesTuple), erl_syntax:variable("Counters")]), #ast_info{}}, TreeWalker}.
+        [erl_syntax:tuple(NamesTuple), erl_syntax:variable("Counters")]).
 
-now_ast(FormatString, _Context, TreeWalker) ->
+now_ast(FormatString, _Context) ->
     % Note: we can't use unescape_string_literal here
     % because we want to allow escaping in the format string.
     % We only want to remove the surrounding escapes,
     % i.e. \"foo\" becomes "foo"
     UnescapeOuter = string:strip(FormatString, both, 34),
-    {{erl_syntax:application(
+    erl_syntax:application(
         erl_syntax:atom(erlydtl_dateformat),
         erl_syntax:atom(format),
-        [erl_syntax:string(UnescapeOuter)]),
-        #ast_info{}}, TreeWalker}.
+        [erl_syntax:string(UnescapeOuter)]).
 
 unescape_string_literal(String) ->
     unescape_string_literal(string:strip(String, both, 34), [], noslash).
@@ -689,86 +559,42 @@ unescape_string_literal("t" ++ Rest, Acc, slash) ->
 unescape_string_literal([C | Rest], Acc, slash) ->
     unescape_string_literal(Rest, [C | Acc], noslash).
 
+include_ast(Path, Context) ->
+    Extension = 
+        lists:foldl(fun(Scope, AccScope) ->
+                            lists:foldl(fun({Key, Val}, Acc) ->
+                                            [erl_syntax:tuple([erl_syntax:atom(Key), Val])| Acc]
+                                        end, AccScope, Scope)
+                    end, [], Context#dtl_context.local_scopes), 
+    NewContextAst = erl_syntax:application(erl_syntax:atom(erlydtl_runtime),
+                                           erl_syntax:atom(extend_dict),
+                                           [erl_syntax:variable("Variables"), 
+                                            erl_syntax:list(Extension)]),
+    include_ast(Path, NewContextAst, Context).
 
-full_path(File, DocRoot) ->
-    filename:join([DocRoot, File]).
-        
-%%-------------------------------------------------------------------
-%% Custom tags
-%%-------------------------------------------------------------------
-
-tag_ast(Name, Args, Context, TreeWalker) ->
-    case lists:member(Name, TreeWalker#treewalker.custom_tags) of
-        true ->
-            InterpretedArgs = lists:map(fun
-                    ({{identifier, _, Key}, {string_literal, _, Value}}) ->
-                        {list_to_atom(Key), erl_syntax:string(unescape_string_literal(Value))};
-                    ({{identifier, _, Key}, Value}) ->
-                        {list_to_atom(Key), format(resolve_variable_ast(Value, Context), Context)}
-                end, Args),
-            DefaultFilePath = filename:join([erlydtl_deps:get_base_dir(), "priv", "custom_tags", Name]),
-            case Context#dtl_context.custom_tags_dir of
-                [] ->
-                    case parse(DefaultFilePath, Context) of
-                        {ok, TagParseTree, CheckSum} ->
-                            tag_ast2({DefaultFilePath, CheckSum}, TagParseTree, InterpretedArgs, Context, TreeWalker);
-                        _ ->
-                            Reason = lists:concat(["Loading tag source for '", Name, "' failed: ", 
-                                DefaultFilePath]),
-                            throw({error, Reason})
-                    end;
-                _ ->
-                    CustomFilePath = filename:join([Context#dtl_context.custom_tags_dir, Name]),
-                    case parse(CustomFilePath, Context) of
-                        {ok, TagParseTree, CheckSum} ->
-                            tag_ast2({CustomFilePath, CheckSum},TagParseTree, InterpretedArgs, Context, TreeWalker);
-                        _ ->
-                            case parse(DefaultFilePath, Context) of
-                                {ok, TagParseTree, CheckSum} ->
-                                    tag_ast2({DefaultFilePath, CheckSum}, TagParseTree, InterpretedArgs, Context, TreeWalker);
-                                _ ->
-                                    Reason = lists:concat(["Loading tag source for '", Name, "' failed: ", 
-                                        CustomFilePath, ", ", DefaultFilePath]),
-                                    throw({error, Reason})
-                            end
-                    end
-            end;
-        _ ->
-            throw({error, lists:concat(["Custom tag '", Name, "' not loaded"])})
-    end.
- 
- tag_ast2({Source, _} = Dep, TagParseTree, InterpretedArgs, Context, TreeWalker) ->
-    with_dependency(Dep, body_ast(TagParseTree, Context#dtl_context{
-        local_scopes = [ InterpretedArgs | Context#dtl_context.local_scopes ],
-        parse_trail = [ Source | Context#dtl_context.parse_trail ]}, TreeWalker)).
-
-
-call_ast(Module, TreeWalkerAcc) ->
-    call_ast(Module, erl_syntax:variable("Variables"), #ast_info{}, TreeWalkerAcc).
-
-call_with_ast(Module, Variable, Context, TreeWalker) ->
-    {VarAst, VarName} = resolve_variable_ast(Variable, Context),
-    call_ast(Module, VarAst, #ast_info{var_names=[VarName]}, TreeWalker).
-        
-call_ast(Module, Variable, AstInfo, TreeWalker) ->
-     AppAst = erl_syntax:application(
-		erl_syntax:atom(Module),
-		erl_syntax:atom(render),
-		[Variable]),
-    RenderedAst = erl_syntax:variable("Rendered"),
+include_ast(Path, NewContextAst, Context) ->
+    AppAst = erl_syntax:application(
+               erl_syntax:atom(Context#dtl_context.renderer_module),
+               erl_syntax:atom(render),
+               [Path, NewContextAst, erl_syntax:abstract(Context#dtl_context.renderer_params)]),
+    Ext = case erlang:now() of
+              {MegaSec, Sec, MicroSec} -> 
+                   "_" ++integer_to_list(MegaSec) ++
+                   "_" ++integer_to_list(Sec) ++
+                   "_" ++integer_to_list(MicroSec)
+          end,
+    RenderedAst = erl_syntax:variable("Rendered" ++ Ext),
     OkAst = erl_syntax:clause(
-	      [erl_syntax:tuple([erl_syntax:atom(ok), RenderedAst])], 
-	      none,
-	      [RenderedAst]),
-    ReasonAst = erl_syntax:variable("Reason"),
+              [erl_syntax:tuple([erl_syntax:atom(ok), RenderedAst])], 
+              none,
+              [RenderedAst]),
+    ReasonAst = erl_syntax:variable("Reason" ++ Ext),
     ErrStrAst = erl_syntax:application(
-		  erl_syntax:atom(io_lib),
-		  erl_syntax:atom(format),
-		  [erl_syntax:string("error: ~p"), erl_syntax:list([ReasonAst])]),
+                  erl_syntax:atom(io_lib),
+                  erl_syntax:atom(format),
+                  [erl_syntax:string("error: ~p"), erl_syntax:list([ReasonAst])]),
     ErrorAst = erl_syntax:clause(
-		 [erl_syntax:tuple([erl_syntax:atom(error), ReasonAst])], 
-		 none,
-		 [ErrStrAst]),
-    CallAst = erl_syntax:case_expr(AppAst, [OkAst, ErrorAst]),   
-    Module2 = list_to_atom(Module),
-    with_dependencies(Module2:dependencies(), {{CallAst, AstInfo}, TreeWalker}).
+                 [erl_syntax:tuple([erl_syntax:atom(error), ReasonAst])], 
+                 none,
+                 [ErrStrAst]),
+    erl_syntax:case_expr(AppAst, [OkAst, ErrorAst]).

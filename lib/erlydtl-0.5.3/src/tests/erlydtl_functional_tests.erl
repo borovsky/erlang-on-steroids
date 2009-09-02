@@ -39,45 +39,16 @@
 -export([run_tests/0, run_test/1]).
 
 test_list() ->
-% order is important.
+                                                % order is important.
     ["autoescape", "comment", "extends", "filters", "for", "for_list",
-        "for_tuple", "for_list_preset", "for_preset", "for_records",
-        "for_records_preset", "include", "if", "if_preset", "ifequal",
-        "ifequal_preset", "ifnotequal", "ifnotequal_preset", "now",
-        "var", "var_preset", "var_error", "cycle", "custom_tag",
-        "custom_tag_error", "custom_call", 
-        "include_template", "include_path",
-        "extends_path", "extends_path2" ].
-
-setup_compile("for_list_preset") ->
-    CompileVars = [{fruit_list, [["apple", "apples"], ["banana", "bananas"], ["coconut", "coconuts"]]}],
-    {ok, CompileVars};
-setup_compile("for_preset") ->
-    CompileVars = [{fruit_list, ["preset-apple", "preset-banana", "preset-coconut"]}],
-    {ok, CompileVars};
-setup_compile("for_records_preset") ->
-    Link1a = [{name, "Amazon (preset)"}, {url, "http://amazon.com"}],
-    Link2a = [{name, "Google (preset)"}, {url, "http://google.com"}],
-    Link3a = [{name, "Microsoft (preset)"}, {url, "http://microsoft.com"}],
-    CompileVars = [{software_links, [Link1a, Link2a, Link3a]}], 
-    {ok, CompileVars};
-setup_compile("if_preset") ->
-    CompileVars = [{var1, "something"}],
-    {ok, CompileVars};
-setup_compile("ifequal_preset") ->
-    CompileVars = [{var1, "foo"}, {var2, "foo"}],
-    {ok, CompileVars};
-setup_compile("ifnotequal_preset") ->
-    CompileVars = [{var1, "foo"}, {var2, "foo"}],
-    {ok, CompileVars};
-setup_compile("var_preset") ->
-    CompileVars = [{preset_var1, "preset-var1"}, {preset_var2, "preset-var2"}],
-    {ok, CompileVars};
-setup_compile("custom_tag_error") ->
-    CompileVars  = [],
-    {error, CompileVars};
-setup_compile(_) ->
-    {ok, []}.
+     "for_tuple", "for_records",
+     "include", "if", "if_preset", "ifequal",
+     "ifnotequal", "now",
+     "var", "var_error", "cycle", %"custom_tag",
+                                                %"custom_tag_error", 
+                                                %"custom_call", 
+     "include_template", "include_path",
+     "extends_path", "extends_path2" ].
 
 %% @spec (Name::string()) -> {CompileStatus::atom(), PresetVars::list(), 
 %%     RenderStatus::atom(), RenderVars::list()} | skip
@@ -92,10 +63,10 @@ setup("extends") ->
     {ok, RenderVars};
 setup("filters") ->
     RenderVars = [
-        {date_var1, {1975,7,24}},
-        {datetime_var1, {{1975,7,24}, {7,13,1}}},
-        {'list', ["eins", "zwei", "drei"]}
-    ],
+                  {date_var1, {1975,7,24}},
+                  {datetime_var1, {{1975,7,24}, {7,13,1}}},
+                  {'list', ["eins", "zwei", "drei"]}
+                 ],
     {ok, RenderVars};
 setup("for") ->
     RenderVars = [{fruit_list, ["apple", "banana", "coconut"]}],
@@ -112,12 +83,6 @@ setup("for_records") ->
     Link3 = [{name, "Microsoft"}, {url, "http://microsoft.com"}],
     RenderVars = [{link_list, [Link1, Link2, Link3]}],
     {ok, RenderVars};  
-setup("for_records_preset") ->
-    Link1b = [{name, "Canon"}, {url, "http://canon.com"}],
-    Link2b = [{name, "Leica"}, {url, "http://leica.com"}],
-    Link3b = [{name, "Nikon"}, {url, "http://nikon.com"}],
-    RenderVars = [{photo_links, [Link1b, Link2b, Link3b]}],
-    {ok, RenderVars};
 setup("include") ->
     RenderVars = [{var1, "foostring1"}, {var2, "foostring2"}],
     {ok, RenderVars};
@@ -127,18 +92,12 @@ setup("if") ->
 setup("ifequal") ->
     RenderVars = [{var1, "foo"}, {var2, "foo"}, {var3, "bar"}],
     {ok, RenderVars};      
-setup("ifequal_preset") ->
-    RenderVars = [{var3, "bar"}],
-    {ok, RenderVars};   
 setup("ifnotequal") ->
     RenderVars = [{var1, "foo"}, {var2, "foo"}, {var3, "bar"}],
     {ok, RenderVars};        
 setup("var") ->
     RenderVars = [{var1, "foostring1"}, {var2, "foostring2"}, {var_not_used, "foostring3"}],
     {ok, RenderVars};
-setup("var_preset") ->
-    RenderVars = [{var1, "foostring1"}, {var2, "foostring2"}],
-    {ok, RenderVars}; 
 setup("var_error") ->
     RenderVars = [{var1, "foostring1"}],   
     {error, RenderVars};
@@ -173,7 +132,7 @@ setup("custom_call") ->
 
 setup(_) ->
     {ok, []}.
-    
+
 
 run_tests() ->    
     io:format("Running functional tests...~n"),
@@ -198,57 +157,32 @@ run_test(Name) ->
 
 fold_tests() ->
     lists:foldl(fun(Name, {AccCount, AccErrs}) ->
-                case test_compile_render(Name) of
-                    ok -> 
-                        {AccCount + 1, AccErrs};
-                    {error, Reason} -> 
-                        {AccCount + 1, [{Name, Reason} | AccErrs]}
-                end
-        end, {0, []}, test_list()
-    ).
+                        case test_compile_render(Name) of
+                            ok -> 
+                                {AccCount + 1, AccErrs};
+                            {error, Reason} -> 
+                                {AccCount + 1, [{Name, Reason} | AccErrs]}
+                        end
+                end, {0, []}, test_list()
+               ).
 
 test_compile_render(Name) ->  
     File = filename:join([templates_docroot(), Name]),
-    Module = "example_" ++ Name,
-    case setup_compile(Name) of
-        {CompileStatus, CompileVars} ->
-            Options = [
-                {vars, CompileVars}, 
-                {force_recompile, true}],
-            io:format(" Template: ~p, ... compiling ... ", [Name]),
-            case erlydtl:compile(File, Module, Options) of
-                ok ->
-                    case CompileStatus of
-                        ok -> test_render(Name, list_to_atom(Module));
-                        _ -> {error, "compiling should have failed :" ++ File}
-                    end;
-                {error, Err} ->
-                    case CompileStatus of
-                        error ->
-                            io:format("~n"),  
-                            ok;
-                        _ ->
-                            io:format("~nCompile errror: ~p~n",[Err]), 
-                            Err
-                    end
-            end;
-        skip ->
-            ok;
-        _ ->
-            {error, "no 'setup' clause defined for this test"}
-    end.
-
-
-test_render(Name, Module) ->
-    File = filename:join([templates_docroot(), Name]),
+    ModuleName = "example_" ++ Name,
+    Module = case ModuleName of
+                 M when is_atom(M) -> M;
+                 S -> list_to_atom(S)
+             end,
+    Options = [debug, {docroot, templates_docroot()}, {erl_out_dir, erl_outdir()}],
     {RenderStatus, Vars} = setup(Name),
-    case catch Module:render(Vars) of
+    io:format(" Template: ~p, ... compiling and rendering ... ", [Name]),
+    case catch erlydtl_renderer:render(Name, Module, Vars, Options) of
         {ok, Data} ->
-            io:format("rendering~n"), 
             case RenderStatus of
-                ok ->
-                    {File, _} = Module:source(),
-                    OutFile = filename:join([templates_outdir(), filename:basename(File)]),
+                ok -> 
+                    io:format("ok~n"),
+                    OutFile = filename:join([templates_outdir(), filename:basename(atom_to_list(Module))]),
+                    filelib:ensure_dir(OutFile),
                     case file:open(OutFile, [write]) of
                         {ok, IoDev} ->
                             file:write(IoDev, Data),
@@ -258,22 +192,33 @@ test_render(Name, Module) ->
                             Err
                     end;
                 _ ->
-                    {error, "rendering should have failed :" ++ File}
+                    io:format("error~n"),
+                    {error, "render should have failed :" ++ File}
             end;
-        {'EXIT', _} ->
-            io:format("~n"),
-            {error, "failed invoking render method:" ++ Module};
-        Err ->
-            io:format("~n"),
+        {error, Err} ->
             case RenderStatus of
-                error ->  ok;
-                _ -> Err
-            end
-    end.   
-
+                error ->
+                    io:format("ok~n"),
+                    ok;
+                _ ->
+                    io:format("~nCompile error: ~p~n",[Err]), 
+                    Err
+            end;
+        {'EXIT', Reason} ->
+            io:format("~n"),
+            
+            io:format("failed invoking render method in ~p: ~p~n", [Module, Reason]),
+            
+            {error, "failed invoking render method in " ++ atom_to_list(Module)};
+        Other ->
+            {error, io_lib:format("Other result: ~p~n", [Other])}
+    end.
 
 templates_docroot() ->
     filename:join([erlydtl_deps:get_base_dir(), "examples", "docroot"]).
 
 templates_outdir() ->   
     filename:join([erlydtl_deps:get_base_dir(), "examples", "rendered_output"]).
+
+erl_outdir() ->   
+    filename:join([erlydtl_deps:get_base_dir(), "examples", "erl_output"]).

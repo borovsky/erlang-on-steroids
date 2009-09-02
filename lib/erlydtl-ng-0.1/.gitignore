@@ -1,0 +1,6 @@
+examples/erl_output/
+ebin/
+examples/rendered_output/
+src/erlydtl/erlydtl_parser.erl
+*~
+

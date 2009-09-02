@@ -1,0 +1,65 @@
+ErlyDTL-NG
+==========
+
+ErlyDTL-NG implements most but not all of the Django Template Language.
+
+Project homepage: http://wiki.github.com/partizan/ErlyDTL-NG
+
+
+Compilation
+-----------
+
+To compile ErlyDTL-NG, type "make" in this directory.
+
+
+Template compilation
+--------------------
+
+If you use standard integration, you can render template using following function:
+    erlydtl_renderer:render(Name, Vars, Options) or
+    erlydtl_renderer:render(Name, Module, Vars, Options)
+where:
+    Name   - template name relative to doc_root (see Options)
+    Module -  module name for compiled template
+    Vars - Context for render template. Can be dict(), gb_tree(), prop_list() or record with callback module
+    Options - List of compile/render options
+
+Options is a proplist possibly containing:
+
+    doc_root - Included template paths will be relative to this directory;
+        defaults to the compiled template's directory.
+
+    erl_out_dir - directory for store compiled templates sources (Erlang sources)
+
+If you want to write your renderer, erlydtl:compile accepts following options:
+
+   reader - {module, function} tuple that takes a path to a template and returns
+        a binary with the file contents. Defaults to {file, read_file}. Useful
+        for reading templates from a network resource.
+
+   compiler_options - Proplist passed directly to compiler:forms/2 
+
+   debug - flag for generate less verbose forms (useful for template debugging)
+    
+   out_dir - Directory to store generated .beam files. If not specified, no
+       .beam files will be created.
+
+   renderer_module - module, that stores/renders blocks and renders subtemplates
+
+   renderer_params - params, used for render
+
+   write_erl_to - if this property specified, compiler writes erlang code to specified file
+
+Tests
+-----
+
+From a Unix shell, run:
+
+    make test
+
+Note that the tests will create some output in examples/rendered_output and examples/erl_output.
+
+
+Note
+----
+This project is greatly rewritten ErlyDTL templating engine (http://code.google.com/p/erlydtl/) 

@@ -173,7 +173,7 @@ test_compile_render(Name) ->
                  M when is_atom(M) -> M;
                  S -> list_to_atom(S)
              end,
-    Options = [debug, {docroot, templates_docroot()}, {erl_out_dir, erl_outdir()}],
+    Options = [debug, {doc_root, templates_docroot()}, {erl_out_dir, erl_outdir()}],
     {RenderStatus, Vars} = setup(Name),
     io:format(" Template: ~p, ... compiling and rendering ... ", [Name]),
     case catch erlydtl_renderer:render(Name, Module, Vars, Options) of

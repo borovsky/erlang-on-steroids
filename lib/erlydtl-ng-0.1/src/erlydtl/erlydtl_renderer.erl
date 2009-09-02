@@ -3,7 +3,8 @@
 %%% @author    Alexander Borovsky <alex.borovsky@gmail.com>
 %%% @copyright 2009, Alexander Borovsky
 %%% @doc  
-%%% ErlyDTL template renderer
+%%% ErlyDTL template renderer. It's default renderer implementation.
+%%% Your framework can use your own renderer for dowsn't recompile template all times
 %%% @end  
 %%%
 %%% The MIT License
@@ -48,6 +49,22 @@
 %% API
 %%====================================================================
 
+%%--------------------------------------------------------------------
+%% @spec render(string(), erlydtl_params(), any()) -> iolist()
+%% @doc Renders template using default module name
+%% @end
+%%--------------------------------------------------------------------
+-spec(render/3 :: (string(), erlydtl_params(), any()) -> iolist()).
+render(Path, Params, Options) ->
+    ModuleName = to_module_name(Path),
+    Module = list_to_atom(ModuleName),
+    render(Path, Module, Params, Options).
+
+%%--------------------------------------------------------------------
+%% @spec render(string(), atom(), erlydtl_params(), any()) -> iolist()
+%% @doc Renders template using specified module name
+%% @end
+%%--------------------------------------------------------------------
 -spec(render/4 :: (string(), atom(), erlydtl_params(), any()) -> iolist()).
 render(Path, Module, Params, #renderer_params{} = RenderParams) ->
     TemplatePath = filename:join(RenderParams#renderer_params.templates_dir, 
@@ -65,6 +82,45 @@ render(Path, Module, Params, CompilerOptions) ->
     render(Path, Module, Params, RendererParams).
 
 
+
+%%--------------------------------------------------------------------
+%% @spec set_block(string(), iolist(), #renderer_params{}) -> #renderer_params{}
+%% @doc Saves block value (in context)
+%% @end
+%%--------------------------------------------------------------------
+-spec(set_block/3 :: (string(), iolist(), #renderer_params{}) -> #renderer_params{}).
+set_block(BlockName, Content, Context) -> 
+    erlydtl_runtime:extend_dict(Context, [{generate_block_name(BlockName), Content}]).
+
+%%--------------------------------------------------------------------
+%% @spec have_child_block(string(), erlydtl_params()) -> boolean()
+%% @doc Checks if current block populated
+%% @end
+%%--------------------------------------------------------------------
+-spec(have_child_block/2 :: (string(), erlydtl_params()) ->
+             boolean()).
+have_child_block(BlockName, Context) ->
+    case erlydtl_runtime:find_value(generate_block_name(BlockName), Context) of
+        undefined -> false;
+        _ -> true
+    end.
+
+
+%%--------------------------------------------------------------------
+%% @spec render_block(string(), erlydtl_params()) -> iolist()
+%% @doc Renders block with specified name
+%% @end
+%%--------------------------------------------------------------------
+-spec(render_block/2 :: (string(), erlydtl_params()) -> iolist()).
+render_block(BlockName, Context) ->
+    case erlydtl_runtime:find_value(generate_block_name(BlockName), Context) of
+        undefined -> "";
+        Val -> Val
+    end.
+
+%%====================================================================
+%% Internal functions
+%%====================================================================
 compiler_params(Path, RenderParams) ->
     case RenderParams#renderer_params.erl_out_dir of
         none -> [];
@@ -79,48 +135,12 @@ to_module_name(Path) ->
     PathNew = string:join(string:tokens(Path, "."), "_") ++ "_view",
     string:join(string:tokens(PathNew, "/"), "$") ++ "_view".
 
-%%--------------------------------------------------------------------
-%% @spec render(string(), erlydtl_params(), any()) -> iolist()
-%% Description:
-%%--------------------------------------------------------------------
--spec(render/3 :: (string(), erlydtl_params(), any()) -> iolist()).
-render(Path, Params, #renderer_params{} = RenderParams) ->
-    ModuleName = to_module_name(Path),
-    Module = list_to_atom(ModuleName),
-    render(Path, Module, Params, RenderParams).
-
-
 init_from_compiler_options(CompilerOptions) ->
     #renderer_params{
         compiler_options = CompilerOptions,
-        templates_dir = proplists:get_value(docroot, CompilerOptions, ""),
+        templates_dir = proplists:get_value(doc_root, CompilerOptions, ""),
         erl_out_dir = proplists:get_value(erl_out_dir, CompilerOptions, none)
     }.
 
 generate_block_name(Name) ->
     "__" ++ Name ++ "_block".
-
--spec(set_block/3 :: (string(), iolist(), #renderer_params{}) -> #renderer_params{}).
-set_block(BlockName, Content, Context) -> 
-    erlydtl_runtime:extend_dict(Context, [{generate_block_name(BlockName), Content}]).
-
--spec(have_child_block/2 :: (string(), erlydtl_params()) ->
-             boolean()).
-have_child_block(BlockName, Context) ->
-    case erlydtl_runtime:find_value(generate_block_name(BlockName), Context) of
-        undefined -> false;
-        _ -> true
-    end.
-
-
--spec(render_block/2 :: (string(), erlydtl_params()) ->
-             iolist()).
-render_block(BlockName, Context) ->
-    case erlydtl_runtime:find_value(generate_block_name(BlockName), Context) of
-        undefined -> "";
-        Val -> Val
-    end.
-
-%%====================================================================
-%% Internal functions
-%%====================================================================

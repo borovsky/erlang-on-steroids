@@ -234,7 +234,7 @@ load_config(FileName) ->
         {ok, Config} ->
             Config;
         {error, Reason} ->
-            io:format("Error loading config: ~s~n", [Reason]),
+            io:format("Error loading config: ~p~n", [Reason]),
             []
     end.
 

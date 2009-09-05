@@ -9,7 +9,7 @@
 
 %% API
 -define(SERVER, ?MODULE).
--export([start_link/0, parse_request/2]).
+-export([start_link/0, parse_request/2, reload_routes/0]).
 
 
 %% gen_server callbacks
@@ -25,7 +25,6 @@
 
 -record(state, {last_reload :: date_time(), routes :: list()}).
 
-
 %%====================================================================
 %% API
 %%====================================================================
@@ -39,6 +38,12 @@ parse_request(Method, URL) ->
     Pid = pg2:get_closest_pid(?SERVER), 
     gen_server:call(Pid, {resolve, Method, URL}).
 
+
+-spec(reload_routes() -> ok).
+reload_routes() ->
+    lists:foreach(fun(Pid) -> gen_server:call(Pid, reload_config) end,
+      pg2:get_local_members(?SERVER)),
+    ok.
 
 %%--------------------------------------------------------------------
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
@@ -63,9 +68,10 @@ start_link() ->
 %%--------------------------------------------------------------------
 -spec(init/1 :: (any()) -> {ok, any()}).
 init([]) ->
-    Response = {ok, load_routes()},
+    Response = {ok, load_routes(#state{})},
     pg2:create(?SERVER),
     pg2:join(?SERVER, self()),
+    timer:send_interval(1000, reload_config),
     Response.
 
 %%--------------------------------------------------------------------
@@ -102,6 +108,9 @@ handle_cast(_Msg, State) ->
 %% @doc Handling all non call/cast messages
 %% 
 -spec(handle_info/2 :: (any(), any()) -> tuple()).
+handle_info(reload_config, State) ->
+    NewState = load_routes(State),
+    {noreply, NewState};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -137,17 +146,21 @@ code_change(_OldVsn, State, _Extra) ->
 %% @private
 %% @end
 %%--------------------------------------------------------------------
--spec(load_routes/0 :: () -> #state{}).
-load_routes() ->
+-spec(load_routes(#state{}) -> #state{}).
+load_routes(State) ->
     RoutesFile = s_conf:get(routes_file),
-    case file:consult(RoutesFile) of
-        {ok, Routes} ->
-            ChangeTime = filelib:last_modified(RoutesFile),
-            State = #state{last_reload = ChangeTime, routes = compile_routes(Routes)},
-            garbage_collect(),
-            State;
-        {error, Reason} ->
-            throw({error_loading_routes, Reason})
+    ChangeTime = filelib:last_modified(RoutesFile),
+    case State#state.last_reload of
+        ChangeTime -> State;
+        _ ->
+            case file:consult(RoutesFile) of
+                {ok, Routes} ->
+                    NewState = #state{last_reload = ChangeTime, routes = compile_routes(Routes)},
+                    garbage_collect(),
+                    NewState;
+                {error, Reason} ->
+                    throw({error_loading_routes, Reason})
+            end
     end.
 
 %%--------------------------------------------------------------------

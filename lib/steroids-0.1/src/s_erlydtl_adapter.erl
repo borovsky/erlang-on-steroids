@@ -36,6 +36,7 @@ compile(Path, Module) ->
     File = filename:join(s_conf:get(ebin_dir), atom_to_list(Module) ++ ".erl"),
     
     erlydtl:compile(Path, Module, [{out_dir, s_conf:get(ebin_dir)},
+                                   debug,
                                    {renderer_module, s_erlydtl_adapter},
                                    {write_erl_to, File}]).
 

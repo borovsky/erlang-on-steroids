@@ -28,8 +28,8 @@ init_per_testcase(_TestCase, Config) ->
     Config.
 
 create_request() ->
-    Params = dict:from_list([{"param1", "test"}, {"param2", "test3"}]),
-   #dispatched_request_record{
+    Params = gb_trees:from_orddict([{"param1", "test"}, {"param2", "test3"}]),
+    #dispatched_request_record{
       method = get,
       controller = "my_test",
       action = "index",

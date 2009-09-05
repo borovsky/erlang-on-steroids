@@ -25,15 +25,15 @@
 %% @doc  Renders template, specified by path. 
 %% @end
 %% 
--spec(render/2 :: (string(), dict()) -> iolist()).
+-spec(render/2 :: (string(), view_parameter_type()) -> iolist()).
 render(TemplatePath, Params) ->
     ModuleName = s_reloader:load_thing(s_template_loader, TemplatePath),
-    case apply(ModuleName, render, [Params]) of
+    case ModuleName:render(Params) of
         {ok, Result} ->
             process_enhanced_iolist(Result);
         {error, Reason} ->
-            s_log:error(?MODULE, "Render error: ~s", [Reason]),
-            export
+            s_log:error(?MODULE, "Render error: ~p", [Reason]),
+            throw(Reason)
     end.
 
 %%
@@ -88,7 +88,7 @@ have_block(Name) ->
     BlockName = calculate_stored_block_name(Name),
     case s_context:get(BlockName) of
         undefined -> false;
-        Value -> true
+        _ -> true
     end.
 
 

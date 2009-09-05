@@ -3,5 +3,13 @@
 {% block title %}First page{% endblock %}
 
 {% block body %}
-<h1>It's django test</h1>
+<h1>Who are you?</h1>
+
+<form method="POST" action="/test">
+  <p>
+    <label for="name">Name:</label>
+    <input type="text" name="name" id="name" />
+  </p>
+  <input type="submit"/>
+</form>
 {% endblock %}

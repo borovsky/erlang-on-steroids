@@ -142,7 +142,8 @@ process_response(#render_response{data = Body,
     Headers = lists:flatten([
                              {code, ResponseCode},
                              {content_type, ContentType},
-                             {content_length, Size}
+                             {content_length, Size},
+                             {cache_control, "private, max-age=0, must-revalidate"}
                             ]),		
 
 

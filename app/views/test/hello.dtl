@@ -1,0 +1,9 @@
+{% extends "layouts/base" %}
+
+{% block title %}Hello page{% endblock %}
+
+{% block body %}
+<h1>Hello, {{ context.name }}</h1>
+
+<a href="test"><< Back</a>
+{% endblock %}

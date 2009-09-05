@@ -31,8 +31,9 @@ dispatch(Request) ->
         throw:not_found -> process_error(error_404);
         Type:Error -> process_error({error, Type, Error})
     after
-        s_log:log(info, ?MODULE, "Request processed in ~f", 
-                  [timer:now_diff(erlang:now(), StartTime) / ?Million])
+        s_log:log(info, ?MODULE, "Request to ~s processed in ~f", 
+                  [Request#common_request_record.url,
+                   timer:now_diff(erlang:now(), StartTime) / ?Million])
     end.
 
 %%====================================================================
@@ -89,6 +90,15 @@ process_request(#dispatched_request_record{
     Result = apply(ControllerModule, Action, [Parameters]),
     process_controller_result(Request, Result).
 
+
+%%
+%% @spec process_controller_result(#dispatched_request_record{}, 
+%%                                 steroids_controller_result()) ->
+%%              steroids_response()
+%% @doc Processes controller result
+%% @private
+%% @end
+%% 
 -spec(process_controller_result/2 :: (#dispatched_request_record{}, 
                                       steroids_controller_result()) ->
              steroids_response()).
@@ -112,10 +122,31 @@ process_controller_result(Request, {render, Controller, Action}) ->
     Path = Controller ++ "/" ++ Action,
     process_controller_result(Request, {render, Path});
 
-process_controller_result(_Request, {render, Path}) ->
-    Data =  s_template:render(Path, dict:new()),
+process_controller_result(Request, {render, Path}) ->
+    Data =  s_template:render(Path, template_parameters(Request)),
     #render_response{data=Data, content_type = "text/html", status_code=200}.
 
+%%
+%% @spec template_parameters(#dispatched_request_record{}) -> list()
+%% @doc Generates parameter list for render view
+%% @private
+%% @end
+%% 
+-spec(template_parameters(#dispatched_request_record{}) -> list()).
+template_parameters(Request) ->
+    [
+     {context, s_context:get_context()},
+     {params, Request#dispatched_request_record.parameters},
+     {controller, Request#dispatched_request_record.controller},
+     {action, Request#dispatched_request_record.action}
+    ].
+
+%%
+%% @spec do_dispatch(#common_request_record{}) -> steroids_response()
+%% @doc Dispatches request
+%% @private
+%% @end
+%% 
 -spec(do_dispatch/1 :: (#common_request_record{}) ->
              steroids_response()).
 do_dispatch(#common_request_record{method = Method, 
@@ -139,10 +170,16 @@ do_dispatch(#common_request_record{method = Method,
             process_error(error_404)
     end.
 
+%%
+%% @spec process_error(any()) -> steroids_response()
+%% @doc Processes errors
+%% @private
+%% @end
+%%
 process_error(error_404) ->
     #render_response{data="<html><head></head><body><h1>Page not found</h1></body></body>", content_type = "text/html", status_code=404};
 
 process_error({error, Type, Reason}) ->
     BackTrace = erlang:get_stacktrace(),
-    s_log:log(error, s_dispatcher, "Error while request processing: ~p:~p~n~p", [Type, Reason, BackTrace]),
+    s_log:log(error, s_dispatcher, "Error while request processing: ~p: ~p~n~p", [Type, Reason, BackTrace]),
     #render_response{data="<html><head></head><body><h1>Internal error</h1></body></body>", content_type = "text/html", status_code=500}.

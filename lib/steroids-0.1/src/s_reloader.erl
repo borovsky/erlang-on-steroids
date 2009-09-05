@@ -23,7 +23,7 @@
 
 
 -define(SERVER, ?MODULE).
--define(RECHECK_TIME, 10).
+-define(RECHECK_TIME, 1).
 -define(Million, 1000000).
 
 -inline([update_last_checked/1,
@@ -268,13 +268,15 @@ update_last_check(CallbackModule, Path) ->
 -spec(compile_and_load/3 :: (atom(), string(), string()) -> ok | error).
 compile_and_load(CallbackModule, Path, ModuleName) ->
     RealPath = apply(CallbackModule, get_real_path, [Path]),
+    s_log:info(?MODULE, "Reloading ~s", [RealPath]),
 
     case filelib:last_modified(RealPath) of
         0 -> {error, not_found};
         ChangeTime ->     
             case apply(CallbackModule, compile_and_load, [RealPath, list_to_atom(ModuleName)]) of
-                ok -> ets:insert(?SERVER, {{reload, ModuleName}, ChangeTime}),
-                      update_last_checked(ModuleName);
+                ok -> 
+                    ets:insert(?SERVER, {{reload, ModuleName}, ChangeTime}),
+                    update_last_checked(ModuleName);
                 Error -> Error
             end
     end.

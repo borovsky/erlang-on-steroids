@@ -7,6 +7,7 @@
 %% API
 -export([get/1, put/2,
          get_param/1, 
+         get_context/0, 
          get_controller/0,
          get_action/0,
          get_method/0,
@@ -55,9 +56,9 @@ cleanup() ->
 -spec(get_param/1 :: (atom()) -> any()).
 get_param(Key) ->
     Params = erlang:get('__param'),
-    case dict:find(Key, Params) of
-        error -> no_found;
-        {ok, Value} -> Value
+    case gb_trees:lookup(Key, Params) of
+        none -> no_found;
+        {value, Value} -> Value
     end.
 
 %%
@@ -103,7 +104,9 @@ get(Key) ->
 put(Key, Value) ->
     erlang:put(Key, Value).
 
-    
+-spec(get_context() -> any()).
+get_context() ->
+    erlang:get().
 %%====================================================================
 %% Internal functions
 %%====================================================================

@@ -5,11 +5,11 @@
 index(_Params) ->
     ok.
 
-hello(Params) ->
-    Name = case gb_trees:lookup("name") of
+hello(_Params) ->
+    Name = case s_context:get_param("name") of
                none -> "Anonymous";
                "Hacker" -> "OMG! Hacker!";
                Val -> Val
            end,
-    s_context:put("name"),
+    s_context:put(name, Name),
     ok.

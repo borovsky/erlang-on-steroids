@@ -22,4 +22,6 @@
 
 -type(extended_iolist() :: [any()] | binary()).
 
+-type(view_parameter_type() :: list() | gb_tree() | dict() | tuple()).
+
 -endif.

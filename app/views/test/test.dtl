@@ -1,7 +1,0 @@
-{% extends "layouts/base" %}
-
-{% block title %}First page{% endblock %}
-
-{% block body %}
-<h1>It's django test</h1>
-{% endblock %}

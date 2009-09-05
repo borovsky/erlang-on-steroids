@@ -19,32 +19,6 @@ It's first release of this framework. Currently it's not production ready
   - Different templating engines (One for generate XML like data
     (HTML, XML), other for plaintext (JSON, CSV, etc))
 
-* Quick startup guide
-
-Currently steroids have no generators, so all things should be done manually.
-
-For example let's create simple "Hello world" application. Default
-configuration will be enough for this task
-
-** Step 1. Creating controller and views
-
-#+BEGIN_SRC erlang
-%'
--module(test_controller).
-
--export([index/1, hello/1]).
-
-index(_Params) ->
-    ok.
-
-hello(Params) ->
-    Name = case gb_trees:lookup("name") of
-               none -> "Anonymous";
-               "Hacker" -> "OMG! Hacker!";
-               _ -> _
-           end                   
-#+END_SRC
-
 
 * Directory structure
 #+BEGIN_EXAMPLE
@@ -76,3 +50,4 @@ hello(Params) ->
  - *logs* directory contains application logs
  - *public* directory contains static files (images, stylesheets, etc)
  - *tmp* directory contains temporary stuff like uploaded files
+

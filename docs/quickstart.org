@@ -1,0 +1,215 @@
+#+STYLE: <style>
+#+STYLE: body {font-family:Verdana,Arial,Helvetica,sans-serif;font-size:90%;}
+#+STYLE: 
+#+STYLE: </style>
+
+#+TITLE: QuickStart
+
+
+* Quick startup guide
+
+Currently steroids have no generators, so all things should be done manually.
+
+For example let's create simple "Hello world" application. Default
+configuration will be enough for this task
+
+** Step 1. Let's create controller that show static page
+
+#+BEGIN_SRC erlang -n
+% app/controllers/test_controller.erl
+-module(test_controller).
+
+-export([index/1]).
+
+hello(_Params) ->
+    ok.
+#+END_SRC
+
+This controller returns atom "ok". This means, that
+"{controller}/{view}" view should be rendered.
+
+** Step 2. Creating static view.
+
+Currently only ErlyDTL-ng templating engine supported. Static view
+will look like:
+
+#+BEGIN_SRC django-html -n
+<!-- app/views/test/hello.dtl -->
+<html>
+  <head>
+    <title>Static page</title>
+  <head>
+  <body>
+    <h1>Hello world</h1>
+  </body>
+<html>
+#+END_SRC
+
+As you see, it's simple HTML file.
+
+** Step 3: Creating routing
+#+BEGIN_SRC erlang -n
+% config/routes.conf
+{"test", [{controller, "test"}, 
+          {action, "hello"}]}.
+#+END_SRC
+
+This route maps path ~/test~ to action ~hello~ of controller ~test~.
+
+Now is time to start application
+
+Open console and run =bin/server=. When application started, you will
+see application monitor. Then you can open your page: open
+http://127.0.0.1:4000 in your browser. You will see "Hello world" page.
+
+* Dynamic page
+
+Now let's add some dynamic
+
+** Step 1: Creating base template
+
+ErlyDTL-ng supports parent template. So we will create some.
+
+#+BEGIN_SRC django-html -n
+<!-- app/views/layouts/base.dtl -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>{% block title %}Hello world{% endblock %}</title>
+  </head>
+  <body>
+    {% block body %}
+    <h1>Base</h1>
+    {% endblock %}
+  </body>
+</html>
+#+END_SRC
+
+In this template we defines two blocks (~title~ and ~body~) that can
+be overwritten in child template.
+
+Than we create child template with form:
+
+#+BEGIN_SRC django-html -n
+<!-- app/views/test/index.dtl -->
+{% extends "layouts/base" %}
+
+{% block title %}First page{% endblock %}
+
+{% block body %}
+<h1>Who are you?</h1>
+
+<form method="POST" action="/test">
+  <p>
+    <label for="name">Name:</label>
+    <input type="text" name="name" id="name" />
+  </p>
+  <input type="submit"/>
+</form>
+{% endblock %}
+#+END_SRC
+
+In first line we specify, that this template extends parent (it's
+replaces blocks ~body~ and ~body~). In line 3 we specify ~title~
+replacement and in line 5 - page ~body~ replacement.
+
+** Step 2: Routing update
+
+Now I will show how RESTful routing works. Let's update routes.conf:
+
+#+BEGIN_SRC erlang -n
+% config/routes.conf
+{get, "test", [{controller, "test"}, 
+               {action, "index"}]}.
+
+{post, "test",  [{controller, "test"},
+                 {action, "hello"}]}.
+#+END_SRC
+
+Here we defined two routes. First will execute action ~index~ if user
+opens ~/test~ page. Second will execute action ~hello~ if user ~POST~
+form to ~/test~.
+
+** Step 3: Updating controller
+
+Now time for update controller:
+
+#+BEGIN_SRC erlang -n
+% app/controllers/test_controller.erl
+-module(test_controller).
+
+-export([index/1, hello/1]).
+
+index(_Params) ->
+    ok.
+
+hello(_Params) ->
+    Name = case s_context:get_param("name") of
+               none -> "Anonymous";
+               "Hacker" -> "OMG! Hacker!";
+               Val -> Val
+           end,
+    s_context:put(name, Name),
+    ok.
+#+END_SRC
+
+Here we handle static page in ~index~ action (previously in ~hello~
+action). And now ~hello~ action do some processing of ~name~
+parameter. Result of this processing stored to context with name
+~name~.
+
+** Step 4: Printing variables in views
+
+Now time to show how to print your information in views. Update
+~app/views/test/hello.dtl~:
+
+#+BEGIN_SRC django-html -n
+<!-- app/views/test/hello.dtl -->
+{% extends "layouts/base" %}
+
+{% block title %}Hello page{% endblock %}
+
+{% block body %}
+<h1>Hello, {{ context.name }}</h1>
+
+<a href="test"><< Back</a>
+{% endblock %}
+#+END_SRC
+
+Here we extracts ~name~ variable from ~context~ and prints in on page
+
+You can check how it's works
+
+** Step 5: Root routing and redirects
+
+As you can see, if you try open root page (http://127.0.0.1:4000) you
+will get error. Let's fix this.
+
+At first update routes file:
+
+#+BEGIN_SRC erlang -n
+% config/routes.conf
+{root, [{controller, "main"}]}.
+
+{get, "test", [{controller, "test"}, 
+               {action, "index"}]}.
+
+{post, "test",  [{controller, "test"},
+                 {action, "hello"}]}.
+#+END_SRC
+
+As you see, we added routing of top page to ~main_controller~. Root
+page will be routed to ~index~ action because we didn't specified
+other.
+
+Also let's create ~main_controller~:
+#+BEGIN_SRC erlang -n
+% app/controllers/main_controller.erl
+-module(main_controller).
+
+-export([index/1]).
+
+index(_Params) ->
+    {redirect, "/test"}.
+#+END_SRC
+
+It's action redirects user to our test controller.

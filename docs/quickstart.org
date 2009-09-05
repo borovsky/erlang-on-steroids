@@ -13,10 +13,10 @@ Currently steroids have no generators, so all things should be done manually.
 For example let's create simple "Hello world" application. Default
 configuration will be enough for this task
 
-** Step 1. Let's create controller that show static page
+** Step 1. Let's create controller to show static page
 
 #+BEGIN_SRC erlang -n
-% app/controllers/test_controller.erl
+app/controllers/test_controller.erl
 -module(test_controller).
 
 -export([index/1]).
@@ -25,16 +25,16 @@ hello(_Params) ->
     ok.
 #+END_SRC
 
-This controller returns atom "ok". This means, that
+The controller returns an ~ok~ atom. This means, that
 "{controller}/{view}" view should be rendered.
 
 ** Step 2. Creating static view.
 
-Currently only ErlyDTL-ng templating engine supported. Static view
+Currently only ErlyDTL-NG templating engine is supported. Static view
 will look like:
 
 #+BEGIN_SRC django-html -n
-<!-- app/views/test/hello.dtl -->
+app/views/test/hello.dtl
 <html>
   <head>
     <title>Static page</title>
@@ -49,29 +49,30 @@ As you see, it's simple HTML file.
 
 ** Step 3: Creating routing
 #+BEGIN_SRC erlang -n
-% config/routes.conf
+config/routes.conf
 {"test", [{controller, "test"}, 
           {action, "hello"}]}.
 #+END_SRC
 
 This route maps path ~/test~ to action ~hello~ of controller ~test~.
 
-Now is time to start application
+Now is time to start application.
 
 Open console and run =bin/server=. When application started, you will
-see application monitor. Then you can open your page: open
-http://127.0.0.1:4000 in your browser. You will see "Hello world" page.
+see application monitor. Then you can open your page: type
+http://127.0.0.1:4000/test in your browser. You will see "Hello world"
+page.
 
 * Dynamic page
 
-Now let's add some dynamic
+Now let's add some dynamics
 
 ** Step 1: Creating base template
 
-ErlyDTL-ng supports parent template. So we will create some.
+ErlyDTL-ng supports parent template. So we shall create some.
 
 #+BEGIN_SRC django-html -n
-<!-- app/views/layouts/base.dtl -->
+app/views/layouts/base.dtl
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
     <title>{% block title %}Hello world{% endblock %}</title>
@@ -84,13 +85,13 @@ ErlyDTL-ng supports parent template. So we will create some.
 </html>
 #+END_SRC
 
-In this template we defines two blocks (~title~ and ~body~) that can
+In this template we define two blocks (~title~ and ~body~) which can
 be overwritten in child template.
 
 Than we create child template with form:
 
 #+BEGIN_SRC django-html -n
-<!-- app/views/test/index.dtl -->
+app/views/test/index.dtl
 {% extends "layouts/base" %}
 
 {% block title %}First page{% endblock %}
@@ -108,7 +109,7 @@ Than we create child template with form:
 {% endblock %}
 #+END_SRC
 
-In first line we specify, that this template extends parent (it's
+In first line this template is specified to extend parent (it's
 replaces blocks ~body~ and ~body~). In line 3 we specify ~title~
 replacement and in line 5 - page ~body~ replacement.
 
@@ -117,7 +118,7 @@ replacement and in line 5 - page ~body~ replacement.
 Now I will show how RESTful routing works. Let's update routes.conf:
 
 #+BEGIN_SRC erlang -n
-% config/routes.conf
+config/routes.conf
 {get, "test", [{controller, "test"}, 
                {action, "index"}]}.
 
@@ -125,16 +126,16 @@ Now I will show how RESTful routing works. Let's update routes.conf:
                  {action, "hello"}]}.
 #+END_SRC
 
-Here we defined two routes. First will execute action ~index~ if user
+Here we define two routes. First will execute action ~index~ if user
 opens ~/test~ page. Second will execute action ~hello~ if user ~POST~
 form to ~/test~.
 
 ** Step 3: Updating controller
 
-Now time for update controller:
+Now it is time to update controller:
 
 #+BEGIN_SRC erlang -n
-% app/controllers/test_controller.erl
+app/controllers/test_controller.erl
 -module(test_controller).
 
 -export([index/1, hello/1]).
@@ -153,17 +154,17 @@ hello(_Params) ->
 #+END_SRC
 
 Here we handle static page in ~index~ action (previously in ~hello~
-action). And now ~hello~ action do some processing of ~name~
+action). And now ~hello~ action performs some processing of ~name~
 parameter. Result of this processing stored to context with name
 ~name~.
 
 ** Step 4: Printing variables in views
 
-Now time to show how to print your information in views. Update
+Following example shows how to print your information in views. Update
 ~app/views/test/hello.dtl~:
 
 #+BEGIN_SRC django-html -n
-<!-- app/views/test/hello.dtl -->
+app/views/test/hello.dtl
 {% extends "layouts/base" %}
 
 {% block title %}Hello page{% endblock %}
@@ -175,19 +176,19 @@ Now time to show how to print your information in views. Update
 {% endblock %}
 #+END_SRC
 
-Here we extracts ~name~ variable from ~context~ and prints in on page
+Here we extract ~name~ variable from ~context~ and prints in on page
 
-You can check how it's works
+You can check how it works
 
 ** Step 5: Root routing and redirects
 
-As you can see, if you try open root page (http://127.0.0.1:4000) you
-will get error. Let's fix this.
+As you can see, if you try to open root page (http://127.0.0.1:4000)
+you will get an error. Let's fix this.
 
 At first update routes file:
 
 #+BEGIN_SRC erlang -n
-% config/routes.conf
+config/routes.conf
 {root, [{controller, "main"}]}.
 
 {get, "test", [{controller, "test"}, 
@@ -198,12 +199,12 @@ At first update routes file:
 #+END_SRC
 
 As you see, we added routing of top page to ~main_controller~. Root
-page will be routed to ~index~ action because we didn't specified
+page will be routed to ~index~ action because we didn't specify
 other.
 
 Also let's create ~main_controller~:
 #+BEGIN_SRC erlang -n
-% app/controllers/main_controller.erl
+app/controllers/main_controller.erl
 -module(main_controller).
 
 -export([index/1]).
@@ -212,4 +213,4 @@ index(_Params) ->
     {redirect, "/test"}.
 #+END_SRC
 
-It's action redirects user to our test controller.
+This action redirects user to our test controller.

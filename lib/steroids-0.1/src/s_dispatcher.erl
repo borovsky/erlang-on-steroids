@@ -28,6 +28,7 @@ dispatch(Request) ->
     try do_dispatch(Request) of
         Result -> Result
     catch
+        throw:not_found -> process_error(error_404);
         Type:Error -> process_error({error, Type, Error})
     after
         s_log:log(info, ?MODULE, "Request processed in ~f", 
@@ -112,9 +113,8 @@ process_controller_result(Request, {render, Controller, Action}) ->
     process_controller_result(Request, {render, Path});
 
 process_controller_result(_Request, {render, Path}) ->
-    Data = s_template:render(Path, dict:new()),
+    Data =  s_template:render(Path, dict:new()),
     #render_response{data=Data, content_type = "text/html", status_code=200}.
-
 
 -spec(do_dispatch/1 :: (#common_request_record{}) ->
              steroids_response()).

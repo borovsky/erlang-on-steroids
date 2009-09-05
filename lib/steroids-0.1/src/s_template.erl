@@ -8,7 +8,7 @@
 -module(s_template).
 
 %% API
--export([render/2, append_stored/2, set_stored/2, get_stored/1]).
+-export([render/2, append_block/2, set_block/2, get_block/1, have_block/1]).
 
 
 -include("s_types.hrl").
@@ -34,15 +34,15 @@ render(TemplatePath, Params) ->
         {error, Reason} ->
             s_log:error(?MODULE, "Render error: ~s", [Reason]),
             export
-        end.
+    end.
 
 %%
-%% @spec append_stored(atom(), extended_iolist()) -> ok
+%% @spec append_block(atom(), extended_iolist()) -> ok
 %% @doc  Appends/creates stored block of content
 %% @end
 %% 
--spec(append_stored/2 :: (atom(), extended_iolist()) -> ok).
-append_stored(Name, Value) ->
+-spec(append_block/2 :: (atom(), extended_iolist()) -> ok).
+append_block(Name, Value) ->
     BlockName = calculate_stored_block_name(Name),
     Prev = case s_context:get(BlockName) of
                undefined ->
@@ -55,32 +55,47 @@ append_stored(Name, Value) ->
     ok.
             
 %%
-%% @spec set_stored(atom(), extended_iolist()) -> ok
+%% @spec set_block(atom(), extended_iolist()) -> ok
 %% @doc  Replaces/creates stored block of content
 %% @end
 %% 
--spec(set_stored/2 :: (atom(), extended_iolist()) -> ok).
-set_stored(Name, Value) ->
+-spec(set_block/2 :: (string() | atom(), extended_iolist()) -> ok).
+set_block(Name, Value) ->
     BlockName = calculate_stored_block_name(Name),
     s_context:put(BlockName, [Value]),
     ok.
 
 %%
-%% @spec get_stored(atom()) -> extended_iolist()
+%% @spec get_block(atom()) -> extended_iolist()
 %% @doc  Fetchs stored block of content / empty list if it's not exists
 %% @end
 %% 
--spec(get_stored/1 :: (atom()) -> extended_iolist()).
-get_stored(Name) ->
+-spec(get_block/1 :: (string() | atom()) -> extended_iolist()).
+get_block(Name) ->
     BlockName = calculate_stored_block_name(Name),
     case s_context:get(BlockName) of
         undefined -> [];
         Value -> lists:reverse(Value)
     end.
 
+%%
+%% @spec have_block(atom()) -> boolean()
+%% @doc  Checks if block already renderen somewere
+%% @end
+%% 
+-spec(have_block/1 :: (string() | atom()) -> boolean()).
+have_block(Name) ->
+    BlockName = calculate_stored_block_name(Name),
+    case s_context:get(BlockName) of
+        undefined -> false;
+        Value -> true
+    end.
 
+
+calculate_stored_block_name(Name) when is_atom(Name)->
+    calculate_stored_block_name(atom_to_list(Name));
 calculate_stored_block_name(Name) ->
-    list_to_atom(?BLOCK_NAME_PREFIX ++ atom_to_list(Name)).
+    list_to_atom(?BLOCK_NAME_PREFIX ++ Name).
 
 %%====================================================================
 %% Internal functions
@@ -97,16 +112,22 @@ process_enhanced_iolist(List, Deep) ->
 -spec(process_enhanced_iolist/3 :: (iolist(), extended_iolist(), integer()) -> iolist()).
 process_enhanced_iolist(Out, [], _Deep) ->
     lists:reverse(Out);
+
 process_enhanced_iolist(_Out, _List, 0) ->
     throw(too_deep_recursive_substitution);
-process_enhanced_iolist(Out, [E | List], Deep) when is_atom(E) ->
-    Substitution = get_substitution(E),
+
+process_enhanced_iolist(Out, [{block, BlockName} | List], Deep) ->
+    Substitution = get_substitution(BlockName),
     Processed = process_enhanced_iolist(Substitution, Deep - 1),
     process_enhanced_iolist([Processed | Out], List, Deep);
+
+process_enhanced_iolist(Out, [E | List], Deep) when is_atom(E)->
+    process_enhanced_iolist([atom_to_list(E) | Out], List, Deep);
+    
 process_enhanced_iolist(Out, [E | List], Deep) ->
     process_enhanced_iolist([E | Out], List, Deep).
 
 get_substitution(Name) ->
-    s_template:get_stored(Name).
+    get_block(Name).
 
 

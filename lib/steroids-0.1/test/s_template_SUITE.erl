@@ -27,19 +27,25 @@ end_per_testcase(_TestCase, _Config) ->
     ok.
 
 all() -> 
-    [test_stored_set, test_stored_append].
+    [test_block_set, test_block_append, test_have_block].
 
 
 %%--------------------------------------------------------------------
 %% TEST CASES
 %%--------------------------------------------------------------------
 
-test_stored_set(_Config) -> 
-    s_template:set_stored(my, "Test"),
-    <<"Test">> = list_to_binary(s_template:get_stored(my)).
+test_block_set(_Config) -> 
+    s_template:set_block(my, "Test"),
+    <<"Test">> = list_to_binary(s_template:get_block(my)).
 
-test_stored_append(_Config) -> 
-    s_template:set_stored(my, "Test"),
-    s_template:append_stored(my, "XYZ"),
-    s_template:append_stored(my, "ABC"),
-    <<"TestXYZABC">> = list_to_binary(s_template:get_stored(my)).
+test_block_append(_Config) -> 
+    s_template:set_block(my, "Test"),
+    s_template:append_block(my, "XYZ"),
+    s_template:append_block(my, "ABC"),
+    <<"TestXYZABC">> = list_to_binary(s_template:get_block(my)).
+
+test_have_block(_Config) ->
+    false = s_template:have_block(my),
+    s_template:set_block(my, "Test"),
+    true = s_template:have_block(my).
+

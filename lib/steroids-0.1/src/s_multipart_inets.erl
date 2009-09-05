@@ -95,8 +95,8 @@ save_file(Data) ->
               not_found -> "/tmp";
               D -> D
           end,
-    s_utils:mkdir_p(Dir),
     FileName = filename:join(Dir, next_file_name()),
+    filelib:ensure_dir(FileName),
 
     Ret = file:write_file(FileName, Data),
     case Ret of 

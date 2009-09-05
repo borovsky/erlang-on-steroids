@@ -170,7 +170,7 @@ terminate() ->
 -spec(init/1 :: (any()) -> {ok, any()} | {stop, any()}).
 init([]) ->
     LogFile = s_conf:get(log_file),
-    s_utils:mkdir_p(filename:dirname(LogFile)),
+    filelib:ensure_dir(LogFile),
     case file:open(LogFile, [append, raw]) of
         {ok, IoDevice} -> 
             Timer = timer:apply_interval(1000, ?MODULE, flush, []),

@@ -42,8 +42,6 @@ init() ->
 compile_and_load(RealPath, TargetModule) ->
     Ext = lists:nthtail(1, filename:extension(RealPath)),
     ExtensionsMap = s_conf:get('__templates_extension_map'),
-    io:format("Ext: ~p", [Ext]),
-    io:format("ExtMap: ~p", [ExtensionsMap]),
  
     case gb_trees:lookup(Ext, ExtensionsMap) of
         none ->

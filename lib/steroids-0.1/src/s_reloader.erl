@@ -61,17 +61,24 @@ start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 
+%%--------------------------------------------------------------------
+%% @spec load_thing(atom(), string()) -> atom()
+%% @doc Starts the server
+%% @end
+%%--------------------------------------------------------------------
 -spec(load_thing/2 :: (atom(), string()) -> atom()).
 load_thing(CallbackModule, Path) ->
     {Result, ModuleName} = is_reload_required(CallbackModule, Path),
     ReloadResult = case Result of
                        yes -> reload_module(CallbackModule, Path);
+                       not_found -> throw(not_found);
                        last_check_update -> update_last_check(CallbackModule, Path);
                        _ -> ok
                    end,
     case ReloadResult of
         ok -> list_to_atom(ModuleName);
-        _ -> throw(runtime_error)
+        {error, not_found} -> throw(not_found);
+        Other -> throw(Other)
     end.
 
 %%====================================================================
@@ -217,11 +224,11 @@ reload_module(CallbackModule, Path) ->
 
 %%
 %% @spec is_reload_required(atom(), string()) ->
-%%              {yes | no | last_check_update, string()}
+%%              {yes | no | last_check_update | not_found, string()}
 %% @doc Checks, if reload required
 %%
 -spec(is_reload_required/2 :: (atom(), string()) ->
-             {yes | no | last_check_update, string()}).
+             {yes | no | last_check_update | not_found, string()}).
 is_reload_required(CallbackModule, Path) ->
     ModuleName = apply(CallbackModule, get_module_name, [Path]),
     CheckedAgo = checked_ago(ModuleName),
@@ -231,13 +238,14 @@ is_reload_required(CallbackModule, Path) ->
             RealPath = case apply(CallbackModule, get_real_path, [Path]) of
                            not_found -> s_log:error(?MODULE, "Module ~s can't find ~p", 
                                                     [CallbackModule, Path]),
-                                        throw({file_not_found, Path});
+                                        not_found;
                            Str -> Str
             end,
             LastReloadTime = last_reload_time(ModuleName),
             case filelib:last_modified(RealPath) of
                 ChangeTime when LastReloadTime < ChangeTime ->
                     yes;
+                0 -> not_found;
                 _ -> last_check_update
             end;
         _ -> no
@@ -254,18 +262,21 @@ update_last_check(CallbackModule, Path) ->
     ok.
 
 %%
-%% @spec compile_and_load(atom(), string(), string()) -> ok | error
+%% @spec compile_and_load(atom(), string(), string()) -> ok | {error, Reason}
 %% @doc Compiles and load module
 %%
 -spec(compile_and_load/3 :: (atom(), string(), string()) -> ok | error).
 compile_and_load(CallbackModule, Path, ModuleName) ->
     RealPath = apply(CallbackModule, get_real_path, [Path]),
-    ChangeTime = filelib:last_modified(RealPath),
-    io:format("Compiling: ~s~n", [RealPath]),
-    case apply(CallbackModule, compile_and_load, [RealPath, list_to_atom(ModuleName)]) of
-        ok -> ets:insert(?SERVER, {{reload, ModuleName}, ChangeTime}),
-              update_last_checked(ModuleName);
-        _ -> error
+
+    case filelib:last_modified(RealPath) of
+        0 -> {error, not_found};
+        ChangeTime ->     
+            case apply(CallbackModule, compile_and_load, [RealPath, list_to_atom(ModuleName)]) of
+                ok -> ets:insert(?SERVER, {{reload, ModuleName}, ChangeTime}),
+                      update_last_checked(ModuleName);
+                Error -> Error
+            end
     end.
 
 %%

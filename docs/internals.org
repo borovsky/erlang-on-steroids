@@ -7,32 +7,32 @@
 
 * Request processing workflow
  
-1. Request catched by webserver. It handles static resources.
+1. Request is catched by webserver. It handles static resources.
 
-2. If request not processed, it processed by web server interface
-   (currently it's only ~s_platform_inets~ for inets server. This
+2. If not processed, request is passed to web server interface
+   (currently there is only ~s_platform_inets~ for inets server. This
    interface extracts GET and POST parameters and executes ~s_dispatcher:dispatch()~
 
 3. ~s_dispatcher~ routes request (using ~s_route.parse_request~) 
 
-   1. If requested controller not exists, 404 page rendered
+   1. If requested controller doesn't exists, 404 page rendered
 
-4. Requested controller executes
+4. Requested controller is executed
 
    1. If controller fails, error page rendered
 
-5. View requested by controller renders
+5. View requested by controller is rendered
    
-   1. 404 page renders if view not found
+   1. 404 page is rendered if view not found
 
-   2. Error page renders if render fails
+   2. Error page is rendered if rendering fails
 
-6. Response converts to web server specific form and renders.
+6. Response is converted to web server specific form and is rendered.
 
 * Routing
 
-Routing file is set of records, that describe routes. Following routes
-supported:
+Routing file is a set of records, that describes routes. Following
+routes are supported:
 
 #+BEGIN_SRC erlang
 {Path, [Params]} % Page route
@@ -42,11 +42,11 @@ supported:
 
 - Difference between ={Path, [Params]}= is the same as ={any, Path, [Params]}=.
 
-- Path can be atom '~root~'. In this case it's matches root route.
+- Path can be atom '~root~'. In this case it matches root route.
 
-- Path in routes can have wildcard components: For example route
-  "~test/:id~" will match "~test/123~" path (and request will be
-  routed with parameter ~id~ equals to "~123~")
+- Path in routes may have wildcard components:For example route
+  "~test/:id~" will match to "~test/123~" path (and request will be routed
+  with parameter ~id~ equal to "~123~")
 
 * Directory structure
 
@@ -64,14 +64,14 @@ supported:
   
  - *app/controllers* directory contains controllers. Currently
    controllers have no namespaces
- - *app/views* directory contains views. Template engine identified by
-   view extension.
+ - *app/views* directory contains views. Template engine is identified
+   by view extension.
  - *app/ebin* used internally for compiled controllers/views
- - *bin* directory contains useful scripts (currently only for startup
-   server)
+ - *bin* directory contains useful scripts (currently only for start
+   up server)
  - *config* directory contains:
    - *application.conf* is main configuration file. You can read
-     configuration options description [[application.conf description][here]] details 
+     configuration options description [[application.conf description][here]].
    - *routes.conf* is file with routing configuration. You can read
      about file format [[routes.conf description][here]].
  - *lib* directory with Erlang OTP applications (such steroids
@@ -80,16 +80,18 @@ supported:
  - *public* directory contains static files (images, stylesheets, etc)
  - *tmp* directory contains temporary stuff like uploaded files
 
+
+
 * Reloader
 
-This subsystem used for reload different kind of files:
+This subsystem is used to reload different kind of files:
 
 1. Controllers
 
 2. Views
 
-It's automatically checks if file changed and executes ~compile~
-function if reload required. For work it used callback module with
+It automatically tracks if file was changed and executes ~compile~
+function when reload required. It utilizes callback module with
 following interface:
 
 #+BEGIN_SRC erlang
@@ -101,7 +103,7 @@ get_module_name(Path)
 #+END_SRC
 
 - ~get_module_name~ returns module name, for specific (virtual)
-  path. F.e. it's generate module name for path to template.
+  path. F.e. it generates module name for path to template.
 
 - ~get_real_path~ returns file system path to specified virtual
   path. F.e. real file path for template.
@@ -110,7 +112,7 @@ get_module_name(Path)
 
 * Template engine integration
 
-You can easy integrate your template engine:
+You can easily integrate your template engine:
 
 ** Step 1. Adapter creating
 

@@ -188,6 +188,10 @@ compile_routes([{root, Params}|Tuples], Routes) ->
     NewRoutes = compile_path(any, [], Params, Routes),
     compile_routes(Tuples, NewRoutes);
 
+compile_routes([{Type, root, Params}|Tuples], Routes) when is_atom(Type) ->
+    NewRoutes = compile_path(Type, [], Params, Routes),
+    compile_routes(Tuples, NewRoutes);
+
 compile_routes([{Path, Params} | Tuples], Routes) ->
     compile_routes([{any, Path, Params}| Tuples], Routes);
 

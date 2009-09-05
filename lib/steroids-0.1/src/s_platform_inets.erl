@@ -128,7 +128,8 @@ do_process_request(Info) ->
       get_params = GetParams,
       post_params = PostParams
      },
-    Response = process_response(s_dispatcher:dispatch(Request), Method),
+    Dispatched = s_dispatcher:dispatch(Request), 
+    Response = process_response(Dispatched, Method),
     Response.
 
 -spec(process_response/2 :: (steroids_response(), atom()) -> tuple()).
@@ -143,7 +144,7 @@ process_response(#render_response{data = Body,
                              {code, ResponseCode},
                              {content_type, ContentType},
                              {content_length, Size},
-                             {cache_control, "private, max-age=0, must-revalidate"}
+                             {cache_control, "no-cache"}
                             ]),		
 
 

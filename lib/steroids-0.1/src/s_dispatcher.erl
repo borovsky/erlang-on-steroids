@@ -31,6 +31,7 @@ dispatch(Request) ->
         throw:not_found -> process_error(error_404);
         Type:Error -> process_error({error, Type, Error})
     after
+        s_context:cleanup(),
         s_log:log(info, ?MODULE, "Request to ~s processed in ~f", 
                   [Request#common_request_record.url,
                    timer:now_diff(erlang:now(), StartTime) / ?Million])

@@ -13,3 +13,4 @@ logs/*.log
 lib/erlydtl-*/examples/rendered_output/
 lib/erlydtl-*/src/erlydtl/erlydtl_parser.erl
 docs/desc.html
+docs/quick_start.html

@@ -268,6 +268,7 @@ update_last_check(CallbackModule, Path) ->
 -spec(compile_and_load/3 :: (atom(), string(), string()) -> ok | error).
 compile_and_load(CallbackModule, Path, ModuleName) ->
     RealPath = apply(CallbackModule, get_real_path, [Path]),
+    filelib:ensure_dir(filename:join(s_conf:get(ebin_dir), "some")),
     s_log:info(?MODULE, "Reloading ~s", [RealPath]),
 
     case filelib:last_modified(RealPath) of

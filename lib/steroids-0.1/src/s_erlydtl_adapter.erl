@@ -8,23 +8,14 @@
 -module(s_erlydtl_adapter).
 
 %% API
--behaviour(s_template).
--export([compile/2, extensions/0]).
+-behaviour(s_template_loader).
+-export([compile/2]).
 
 -export([render/3, set_block/3, render_block/2, have_child_block/2]).
 
 %%====================================================================
 %% API
 %%====================================================================
-
-%%
-%% @spec extensions() -> list(string())
-%% @doc Returns list of extensions for ErlyDTL templating engine
-%% @end
-%%
--spec(extensions() -> list(string())).
-extensions() ->              
-    ["dtl"].
 
 %%
 %% @spec compile(string(), atom()) -> ok | {error, any()}

@@ -13,6 +13,11 @@ Currently steroids have no generators, so all things should be done manually.
 For example let's create simple "Hello world" application. Default
 configuration will be enough for this task
 
+
+** Step 0: You should build library
+
+For this you should run 'make' command from root directory.
+
 ** Step 1. Let's create controller to show static page
 
 #+BEGIN_SRC erlang -n

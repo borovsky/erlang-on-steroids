@@ -26,5 +26,6 @@ docs:
 
 test: compile
 	mkdir -p test/logs
-	run_test  -include `pwd`/src `pwd`/include -dir test -logdir test/logs
+	erl -sname ct  -s ct_run script_start -s erlang halt -pa `pwd`/ebin/ \
+	    -include `pwd`/src `pwd`/include -dir test -logdir test/logs
 

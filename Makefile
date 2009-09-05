@@ -1,7 +1,7 @@
 STEROIDS_VERSION="0.1"
 ERLYDTL_VERSION="0.1"
 
-all: compile dializer test
+all: compile test
 
 full: compile dializer test_full docs
 

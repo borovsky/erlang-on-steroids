@@ -1,8 +1,25 @@
-%%%-------------------------------------------------------------------
+%%%
+%%% This Library is free software; you can redistribute it and/or
+%%% modify it under the terms of the GNU Library General Public License as
+%%% published by the Free Software Foundation; either version 3 of the
+%%% License, or (at your option) any later version.
+%%%
+%%% This Library is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+%%% Library General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU Library General Public
+%%% License along with the Gnome Library; see the file COPYING.LIB.  If not,
+%%% write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+%%% Boston, MA 02111-1307, USA.
+%%%
+
+%%%
 %%% @author Alexander Borovsky <partizan@altlinux.ru>
 %%% @doc Routing subsystem
 %%% @end
-%%%-------------------------------------------------------------------
+%%%
 -module(s_routes).
 
 -behaviour(gen_server).
@@ -29,10 +46,10 @@
 %% API
 %%====================================================================
 
-%%--------------------------------------------------------------------
+%%
 %% @spec parse_request(atom(), string()) -> dict()
 %% @doc Parses requests and returns controller/action
-%%--------------------------------------------------------------------
+%%
 -spec(parse_request/2 :: (atom(), string()) -> routing_result()).
 parse_request(Method, URL) ->
     Pid = pg2:get_closest_pid(?SERVER), 
@@ -45,11 +62,11 @@ reload_routes() ->
       pg2:get_local_members(?SERVER)),
     ok.
 
-%%--------------------------------------------------------------------
+%%
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Starts the server
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(start_link/0 :: () -> {ok, pid()} | ignore | {error, any()}).
 start_link() ->
     gen_server:start_link(?MODULE, [], []).
@@ -58,14 +75,14 @@ start_link() ->
 %% gen_server callbacks
 %%====================================================================
 
-%%--------------------------------------------------------------------
+%%
 %% @spec init(Args) -> {ok, State} |
 %%                     {ok, State, Timeout} |
 %%                     ignore               |
 %%                     {stop, Reason}
 %% @doc Initiates the server
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(init/1 :: (any()) -> {ok, any()}).
 init([]) ->
     Response = {ok, load_routes(#state{})},
@@ -74,7 +91,7 @@ init([]) ->
     timer:send_interval(1000, reload_config),
     Response.
 
-%%--------------------------------------------------------------------
+%%
 %% @spec handle_call(Request, From, State) -> {reply, Reply, State} |
 %%                                      {reply, Reply, State, Timeout} |
 %%                                      {noreply, State} |
@@ -82,7 +99,7 @@ init([]) ->
 %%                                      {stop, Reason, Reply, State} |
 %%                                      {stop, Reason, State}
 %% @doc Handling call messages
-%%--------------------------------------------------------------------
+%%
 -spec(handle_call/3 :: (any(), pid(), #state{}) -> tuple()).
 handle_call({resolve, Method, Path}, _From, State) ->
     Reply = resolve_route(Method, Path, State#state.routes),
@@ -140,12 +157,12 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-%%--------------------------------------------------------------------
+%%
 %% @spec load_routes() -> #state{}
 %% @doc Loads routes from file
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(load_routes(#state{}) -> #state{}).
 load_routes(State) ->
     RoutesFile = s_conf:get(routes_file),
@@ -163,23 +180,23 @@ load_routes(State) ->
             end
     end.
 
-%%--------------------------------------------------------------------
+%%
 %% @spec compile_routes(list(tuple())) -> list()
 %% @doc Compiles routes for more quick access
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(compile_routes/1 :: (list(tuple)) -> list()).
 compile_routes(Tuples) ->
     Routes = [],
     compile_routes(Tuples, Routes).
 
-%%--------------------------------------------------------------------
+%%
 %% @spec compile_routes(list(tuple()), list()) -> list()
 %% @doc Compiles routes for more quick access
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(compile_routes/2 :: (list(tuple()), list()) -> list()).
 compile_routes([], Routes) ->
     Routes;
@@ -203,12 +220,12 @@ compile_routes([Problem | Tuples], Routes) ->
     io:format("Can't process route: ~p~n", [Problem]),
     compile_routes(Tuples, Routes).
 
-%%--------------------------------------------------------------------
+%%
 %% @spec compile_path(atom(), list(string()), list({atom(), any()}), list()) -> list()
 %% @doc Compiles one route record (path)
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(compile_path/4 :: (atom(), list(string()), list({atom(), any()}), list()) -> list()).
 compile_path(Method, [], Params, Routes) ->
     add_method(Routes, Method, Params);
@@ -235,12 +252,12 @@ compile_path(Method, [Element| Path], Params, Routes) ->
     lists:keystore(Element, 1, Routes, {Element, UpdatedList}).
 
 
-%%--------------------------------------------------------------------
+%%
 %% @spec add_method(list(), atom(), list({atom(), any()})) -> list()
 %% @doc Adds record with method for current path
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(add_method/3 :: (list(), atom(), list({atom(), any()})) -> list()).
 add_method(Routes, Method, Params) ->
     case proplists:lookup(root, Routes) of
@@ -251,12 +268,12 @@ add_method(Routes, Method, Params) ->
                 _ -> throw(routing_error)
             end
     end.
-%%--------------------------------------------------------------------
+%%
 %% @spec resolve_route(atom(), string(), #state{}) -> routing_result()
 %% @doc Does routing
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(resolve_route/3 :: (atom(), string(), list()) -> routing_result()).
 resolve_route(Method, Path, State) ->
     SplittedPath = string:tokens(Path, "/"),
@@ -277,13 +294,13 @@ resolve_route_path(Method, [Part| Other], Route) ->
                 end
     end.
 
-%%--------------------------------------------------------------------
+%%
 %% @spec resolve_named_path(atom(), list(), list(string()), string()) ->
 %%         routing_result()
 %% @doc Resolves named path
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(resolve_named_path/4 :: (atom(), list(), list(string()), string()) ->
              routing_result()).
 resolve_named_path(_Method, [], _PathPart, _Value) ->
@@ -297,12 +314,12 @@ resolve_named_path(Method, [{Name, Route}| Variants], PathPart, Value) ->
     end.
 
 
-%%--------------------------------------------------------------------
+%%
 %% @spec check_method(atom(), list({atom(), list()})) -> routing_result()
 %% @doc Checks if this leaf support HTTP method
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(check_method/2 :: (atom(), list({atom(), list()})) ->
              routing_result()).
 check_method(Method, Methods) ->
@@ -314,12 +331,12 @@ check_method(Method, Methods) ->
                  end
     end.
 
-%%--------------------------------------------------------------------
+%%
 %% @spec to_route_result(list()) -> routing_result()
 %% @doc Convertes route params to result action
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(to_route_result/1 :: (list({any(), any()})) -> routing_result()).
 to_route_result(Params)->
     Controller = proplists:get_value(controller, Params, ""),
@@ -327,22 +344,22 @@ to_route_result(Params)->
     {Controller, Action, cleanup_parameters(Params)}.
 
 
-%%--------------------------------------------------------------------
+%%
 %% @spec cleanup_parameters(list({atom, any()})) -> list({atom, any()})
 %% @doc Removes controller/action parameters from parameter list
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(cleanup_parameters/1 :: (list({atom(), any()})) -> list({atom(), any()})).
 cleanup_parameters(Params) ->
     cleanup_parameters(Params, []).
 
-%%--------------------------------------------------------------------
+%%
 %% @spec cleanup_parameters(list({atom, any()}), list()) -> list({atom, any()})
 %% @doc Removes controller/action parameters from parameter list
 %% @private
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(cleanup_parameters/2 :: (list({atom, any()}), list({atom, any()})) -> list({atom, any()})).
 cleanup_parameters([], Acc) ->
     Acc;

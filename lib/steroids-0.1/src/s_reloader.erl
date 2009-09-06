@@ -1,8 +1,25 @@
-%%%-------------------------------------------------------------------
+%%%
+%%% This Library is free software; you can redistribute it and/or
+%%% modify it under the terms of the GNU Library General Public License as
+%%% published by the Free Software Foundation; either version 3 of the
+%%% License, or (at your option) any later version.
+%%%
+%%% This Library is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+%%% Library General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU Library General Public
+%%% License along with the Gnome Library; see the file COPYING.LIB.  If not,
+%%% write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+%%% Boston, MA 02111-1307, USA.
+%%%
+
+%%%
 %%% @author Alexander Borovsky <partizan@altlinux.ru>
 %%% @doc Server, that reloads templates/controllers/models
 %%% @end
-%%%-------------------------------------------------------------------
+%%%
 -module(s_reloader).
 
 -behaviour(gen_server).
@@ -51,21 +68,21 @@ behaviour_info(_Other) ->
 start() ->
     gen_server:start({local, ?SERVER}, ?MODULE, [], []).
 
-%%--------------------------------------------------------------------
+%%
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Starts the server
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(start_link/0 :: () -> {ok, pid()} | ignore | {error, any()}).
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
 
-%%--------------------------------------------------------------------
+%%
 %% @spec load_thing(atom(), string()) -> atom()
 %% @doc Starts the server
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(load_thing/2 :: (atom(), string()) -> atom()).
 load_thing(CallbackModule, Path) ->
     {Result, ModuleName} = is_reload_required(CallbackModule, Path),
@@ -85,14 +102,14 @@ load_thing(CallbackModule, Path) ->
 %% gen_server callbacks
 %%====================================================================
 
-%%--------------------------------------------------------------------
+%%
 %% @spec init(Args) -> {ok, State} |
 %%                     {ok, State, Timeout} |
 %%                     ignore               |
 %%                     {stop, Reason}
 %% @doc Initiates the server
 %% @end
-%%--------------------------------------------------------------------
+%%
 -spec(init/1 :: ([]) -> {ok, tuple()}).
 init([]) ->
     ets:new(?SERVER, [named_table, protected]),

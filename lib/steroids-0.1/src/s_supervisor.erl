@@ -1,10 +1,24 @@
-%%%-------------------------------------------------------------------
-%%% File    : s_supervisor.erl
-%%% Author  : Alexander Borovsky <partizan@altlinux.ru>
-%%% Description : 
 %%%
-%%% Created : 12 Jul 2009 by Alexander Borovsky <partizan@altlinux.ru>
-%%%-------------------------------------------------------------------
+%%% This Library is free software; you can redistribute it and/or
+%%% modify it under the terms of the GNU Library General Public License as
+%%% published by the Free Software Foundation; either version 3 of the
+%%% License, or (at your option) any later version.
+%%%
+%%% This Library is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+%%% Library General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU Library General Public
+%%% License along with the Gnome Library; see the file COPYING.LIB.  If not,
+%%% write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+%%% Boston, MA 02111-1307, USA.
+%%%
+
+%%%
+%%% @author Alexander Borovsky <partizan@altlinux.ru>
+%%% @doc Supervisor for steroids framework
+%%%
 -module(s_supervisor).
 
 -behaviour(supervisor).
@@ -19,10 +33,11 @@
 %%====================================================================
 %% API functions
 %%====================================================================
-%%--------------------------------------------------------------------
-%% Function: start_link() -> {ok,Pid} | ignore | {error,Error}
-%% Description: Starts the supervisor
-%%--------------------------------------------------------------------
+
+%%
+%% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
+%% @doc Starts the supervisor
+%%
 -spec(start_link/1 :: (any()) -> {ok, pid()} | ignore | {error, any()}).
 start_link(_StartArgs) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -30,15 +45,16 @@ start_link(_StartArgs) ->
 %%====================================================================
 %% Supervisor callbacks
 %%====================================================================
-%%--------------------------------------------------------------------
-%% Func: init(Args) -> {ok,  {SupFlags,  [ChildSpec]}} |
+
+%%
+%% @spec init(Args) -> {ok,  {SupFlags,  [ChildSpec]}} |
 %%                     ignore                          |
 %%                     {error, Reason}
-%% Description: Whenever a supervisor is started using 
+%% @doc Whenever a supervisor is started using 
 %% supervisor:start_link/[2,3], this function is called by the new process 
 %% to find out about restart strategy, maximum restart frequency and child 
 %% specifications.
-%%--------------------------------------------------------------------
+%%
 -spec(init/1 :: (any()) -> {ok, tuple()} | ignore | {error, any()}).
 init([]) ->
     SConf = {s_conf,{s_conf,start_link,[]},

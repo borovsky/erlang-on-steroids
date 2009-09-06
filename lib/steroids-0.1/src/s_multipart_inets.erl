@@ -1,10 +1,27 @@
-%%%-------------------------------------------------------------------
-%%% File    : s_multipart_inets.erl
-%%% Author  : Alexander Borovsky <alex@partizan.home>
-%%% Description : 
 %%%
-%%% Created : 26 Jun 2009 by Alexander Borovsky <alex@partizan.home>
-%%%-------------------------------------------------------------------
+%%% This Library is free software; you can redistribute it and/or
+%%% modify it under the terms of the GNU Library General Public License as
+%%% published by the Free Software Foundation; either version 3 of the
+%%% License, or (at your option) any later version.
+%%%
+%%% This Library is distributed in the hope that it will be useful,
+%%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+%%% Library General Public License for more details.
+%%%
+%%% You should have received a copy of the GNU Library General Public
+%%% License along with the Gnome Library; see the file COPYING.LIB.  If not,
+%%% write to the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+%%% Boston, MA 02111-1307, USA.
+%%%
+
+%%%
+%%% @author Alexander Borovsky <alex.borovsky@gmail.com>
+%%% @doc Multipart processing for inets webserver
+%%% @version 0.1
+%%% @private
+%%% 
+
 -module(s_multipart_inets).
 
 %%--------------------------------------------------------------------
@@ -27,11 +44,11 @@
 %%====================================================================
 %% External functions
 %%====================================================================
-%%--------------------------------------------------------------------
-%% Function: Parses multipart body
-%% Description:
-%%--------------------------------------------------------------------
 
+%%
+%% @spec get_multipart(string(), string()) -> list(request_parameter())
+%% @doc Parses multipart body
+%%
 -spec(get_multipart/2 :: (string(), string()) -> list(request_parameter())).
 get_multipart(Body, Boundary) ->
     Regexp = "--" ++ Boundary ++ "((\r\n)|(\-\-\r\n))",
@@ -48,9 +65,9 @@ get_multipart(Body, Boundary) ->
 %% Internal functions
 %%====================================================================
 
-%%--------------------------------------------------------------------
-%% Function: retrive_data/1
-%% Description: Generates parameters from multiparts
+%%
+%% @spec retrive_data(list(list(binary()))) -> list(request_parameter())
+%% @doc Generates parameters from multiparts
 %%--------------------------------------------------------------------
 -spec(retrive_data/1 :: (list(list(binary()))) -> list(request_parameter())).
 retrive_data([]) ->
@@ -65,10 +82,10 @@ retrive_data([[Part | _] | Rest]) ->
     ProcessedHeaders = parse_headers(Headers),
     [process_part(ProcessedHeaders, Data) | retrive_data(Rest)].
 
-%%--------------------------------------------------------------------
-%% Function: Processes one part
-%% Description:
-%%--------------------------------------------------------------------
+%%
+%% @spec process_part(list(parsed_http_header()), binary()) -> request_parameter()
+%% @doc Processes one part
+%%
 -spec(process_part/2 :: (list(parsed_http_header()), binary()) -> request_parameter()).
 process_part(Header, Data) ->
     {value, {"content-disposition", _, Params}} = lists:keysearch("content-disposition", 1, Header),
@@ -85,10 +102,10 @@ process_part(Header, Data) ->
                     {content_type, ContentType}]}
     end.
 
-%%--------------------------------------------------------------------
-%% Function: save_file/1
-%% Description: Stores file to upload directory
-%%--------------------------------------------------------------------
+%%
+%% @spec save_file(binary()) -> ok | error
+%% @doc Stores uploaded file to temporary directory
+%%
 -spec(save_file/1 :: (binary()) -> ok | error).
 save_file(Data) ->
     Dir = case s_conf:get(upload_dir) of
@@ -106,38 +123,38 @@ save_file(Data) ->
             error
         end.
 
-%%--------------------------------------------------------------------
-%% Function: next_file_name/0
-%% Description: Generates unique file name
-%%--------------------------------------------------------------------
+%%
+%% @spec next_file_name() -> string()
+%% @doc Generates unique file name
+%%
 -spec(next_file_name/0 :: () -> string()).
 next_file_name() ->
     {MegaSecs, Secs, MicroSecs} = now(),
     io_lib:format("~w-~w-~w.dat", [MegaSecs, Secs, MicroSecs]).
 
 
-%%--------------------------------------------------------------------
-%% Function: sanitize_file_name/1
-%% Description: Sanitizes file name (some IE versions provides full path to file
-%%--------------------------------------------------------------------
+%%
+%% @spec sanitize_file_name(string()) -> string()
+%% @doc Sanitizes file name (some IE versions provides full path to file
+%%
 -spec(sanitize_file_name/1 :: (string()) -> string()).
 sanitize_file_name(Name) ->
-    lists:last(string:tokens(Name, "\\")).
+    filename:basename(lists:last(string:tokens(Name, "\\"))).
 
-%%--------------------------------------------------------------------
-%% Function: parse_headers/1
-%% Description:  Parses HTTP-like headers to more useful form
-%%--------------------------------------------------------------------
+%%
+%% @spec parse_headers([binary()]) -> list(parsed_http_header())
+%% @doc  Parses HTTP-like headers to more useful form
+%%
 -spec(parse_headers/1 :: ([binary()]) -> list(parsed_http_header())).
 parse_headers([]) -> 
     [];
 parse_headers([Line|Rest]) -> 
     [parse_header(Line)|parse_headers(Rest)].
 
-%%--------------------------------------------------------------------
-%% Function: parse_header/1
-%% Description:  Parses one HTTP header
-%%--------------------------------------------------------------------
+%%
+%% @spec parse_header(string()) -> parsed_http_header()
+%% @doc Parses one HTTP header
+%%
 -spec(parse_header/1 :: (string()) -> parsed_http_header()).
 parse_header(Header) ->
     {match, [Name, Value]} = re:run(Header, "^(.*):(.*)\$", [{capture, [1, 2], list}]),

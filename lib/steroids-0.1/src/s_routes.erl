@@ -188,8 +188,31 @@ load_routes(State) ->
 %%
 -spec(compile_routes/1 :: (list(tuple)) -> list()).
 compile_routes(Tuples) ->
-    Routes = [],
-    compile_routes(Tuples, Routes).
+    ProcessedTuples = preprocess_tuples(Tuples),
+    compile_routes(ProcessedTuples, []).
+
+%%
+%% @spec preprocess_tuples(list(tuple())) -> list(tuple())
+%% @doc preprocesses tuples (converts them in more common form)
+%% @private
+%% @end
+%%
+
+preprocess_tuples(List) -> preprocess_tuples(List, []).
+
+%%
+%% @spec preprocess_tuples(list(tuple()), list(tuple())) -> list(tuple())
+%% @doc preprocesses tuples (converts them in more common form)
+%% @private
+%% @end
+%%
+preprocess_tuples([], NewList) -> NewList;
+
+preprocess_tuples([{Path, Params} | List], NewList) ->
+    preprocess_tuples(List, [{any, Path, Params} | NewList]);
+
+preprocess_tuples([Other | List], NewList) ->
+    preprocess_tuples(List, [Other | NewList]).
 
 %%
 %% @spec compile_routes(list(tuple()), list()) -> list()
@@ -201,16 +224,9 @@ compile_routes(Tuples) ->
 compile_routes([], Routes) ->
     Routes;
 
-compile_routes([{root, Params}|Tuples], Routes) ->
-    NewRoutes = compile_path(any, [], Params, Routes),
-    compile_routes(Tuples, NewRoutes);
-
 compile_routes([{Type, root, Params}|Tuples], Routes) when is_atom(Type) ->
     NewRoutes = compile_path(Type, [], Params, Routes),
     compile_routes(Tuples, NewRoutes);
-
-compile_routes([{Path, Params} | Tuples], Routes) ->
-    compile_routes([{any, Path, Params}| Tuples], Routes);
 
 compile_routes([{Method, Path, Params}|Tuples], Routes) ->
     NewRoutes = compile_path(Method, string:tokens(Path, "/"), Params, Routes),

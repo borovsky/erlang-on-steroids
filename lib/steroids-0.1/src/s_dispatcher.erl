@@ -172,11 +172,17 @@ do_dispatch(#common_request_record{method = Method,
                                 get_params = GetParams, 
                                 post_params = PostParams
                                }) ->
-    case s_routes:parse_request(Method, URL) of
+    RequestMethod = case proplists:get_value("_method", PostParams) of
+                        undefined -> proplists:get_value("_method", GetParams, Method);
+                        Val -> Val
+                    end,
+    MappedMethod = map_method(RequestMethod),
+
+    case s_routes:parse_request(MappedMethod, URL) of
         {Controller, Action, RequestParameters} -> 
             Parameters = merge_parameters([RequestParameters, GetParams, PostParams]),
             DispatchedRequest = #dispatched_request_record {
-              method = Method,
+              method = MappedMethod,
               controller = Controller,
               action = Action,
               parameters = Parameters
@@ -184,7 +190,7 @@ do_dispatch(#common_request_record{method = Method,
             s_log:log(trace, ?MODULE, "Routing request ~p~n", [DispatchedRequest]),
             process_request(DispatchedRequest);
         not_found -> 
-            s_log:log(error, ?MODULE, "Error routing ~p request to ~s~n", [Method, URL]),
+            s_log:log(error, ?MODULE, "Error routing ~p request to ~s~n", [RequestMethod, URL]),
             process_error(error_404)
     end.
 
@@ -201,3 +207,21 @@ process_error({error, Type, Reason}) ->
     BackTrace = erlang:get_stacktrace(),
     s_log:log(error, s_dispatcher, "Error while request processing: ~p: ~p~n~p", [Type, Reason, BackTrace]),
     #render_response{data="<html><head></head><body><h1>Internal error</h1></body></body>", content_type = "text/html", status_code=500}.
+
+%%
+%% @spec map_method(string()) -> atom()
+%% @doc Maps request method to atom
+%%
+-spec(map_method/1 :: (string()) -> atom()).
+map_method("POST") ->
+    post;
+map_method("HEAD") ->
+    head;
+map_method("DELETE") ->
+    delete;
+map_method("OPTIONS") ->
+    options;
+map_method("PUT") ->
+    put;
+map_method(_) ->
+    get.

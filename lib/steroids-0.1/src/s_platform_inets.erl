@@ -82,7 +82,7 @@ end.
 do_process_request(Info) ->
     {Path, GetParams} = parse_get_args(Info),
     PostParams = parse_post_args(Info),
-    Method = map_method(Info#mod.method),
+    Method = Info#mod.method,
     Request = #common_request_record{
       method = Method, 
       url = Path,
@@ -194,9 +194,9 @@ process_response(#render_response{data = Body,
 
 
     ResponsePre = case Method of
-                   head -> {response, {response, Headers, nobody}};
-                   _ -> {response, {response, Headers, Body}}
-               end,
+                      "HEAD" -> {response, {response, Headers, nobody}};
+                      _ -> {response, {response, Headers, Body}}
+                  end,
 
     {proceed,[ ResponsePre ]};
 
@@ -209,15 +209,4 @@ process_response(#redirect_response{target = Target}, _Method) ->
               "<HTML>\n<HEAD>\n<TITLE>Redirect</TITLE>\n</HEAD>\n",
               "<BODY>\n</BODY>\n</HTML>\n"]}}]}.
 
-%%
-%% @spec map_method(string()) -> atom()
-%% @doc Maps request method to atom
-%%
--spec(map_method/1 :: (string()) -> atom()).
-map_method("POST") ->
-    post;
-map_method("HEAD") ->
-    head;
-map_method(_) ->
-    get.
 

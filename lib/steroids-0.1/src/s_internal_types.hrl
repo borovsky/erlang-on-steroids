@@ -26,7 +26,7 @@
 -include("s_types.hrl").
 
 -record(common_request_record,
-      {method :: atom(),
+      {method :: string(),
        url :: string(),
        get_params :: request_parameters_list(),
        post_params ::request_parameters_list()

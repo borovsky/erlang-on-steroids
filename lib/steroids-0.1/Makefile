@@ -1,5 +1,5 @@
 APPNAME=steroids
-DOC_OPTS="[{todo, true},{packages, false}]"
+DOC_OPTS=[{todo, true},{packages, false}]
 
 
 all: compile dializer test docs
@@ -22,7 +22,7 @@ dializer:
 	dialyzer --no_check_plt -I include --src -r src 
 
 docs:
-	erl -noshell -run edoc_run application "'$(APPNAME)'" '"."' '$(DOC_OPTS)' -s init stop
+	erl -noshell -run edoc_run application "'$(APPNAME)'" '"."' "$(DOC_OPTS)" -s init stop
 
 test: compile
 	mkdir -p test/logs

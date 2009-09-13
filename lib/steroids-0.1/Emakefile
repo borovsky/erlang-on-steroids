@@ -1,5 +1,5 @@
 % Compile Steroids Files.
-{ './src/s_reloader', [
+{ './src/core/s_reloader', [
                        debug_info,
                        report,
                        { i, "include" },
@@ -13,7 +13,7 @@
                        warn_missing_spec	
                       ]
  }.
-{ './src/*', [
+{ './src/**/*', [
               debug_info,
               report,
               { i, "include" },

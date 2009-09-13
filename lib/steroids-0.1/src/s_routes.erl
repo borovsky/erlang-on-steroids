@@ -158,7 +158,7 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 %%
-%% @spec load_routes() -> #state{}
+%% @spec load_routes(#state{}) -> #state{}
 %% @doc Loads routes from file
 %% @private
 %% @end

@@ -1,8 +1,9 @@
-                                                % Compile Steroids Files.
+% Compile Steroids Files.
 { './src/s_reloader', [
                        debug_info,
                        report,
-                       { i, "./include" },
+                       { i, "include" },
+                       { i, "src" },
                        { outdir, "./ebin" },
                        {warn_format, 2},
                        warn_shadow_vars,
@@ -15,7 +16,8 @@
 { './src/*', [
               debug_info,
               report,
-              { i, "./include" },
+              { i, "include" },
+              { i, "src" },
               { outdir, "./ebin" },
               {warn_format, 2},
               warn_shadow_vars,

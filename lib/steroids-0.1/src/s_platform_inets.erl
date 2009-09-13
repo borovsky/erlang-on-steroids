@@ -75,7 +75,7 @@ end.
 %%====================================================================
 
 %%
-%% @spec do_process_request/1 :: (#mod{}) -> tuple()
+%% @spec do_process_request(#mod{}) -> tuple()
 %% @doc Processes request
 %%
 -spec(do_process_request/1 :: (#mod{}) -> tuple()).
@@ -129,7 +129,7 @@ parse_query_string(String) ->
     
 
 %%
-%% @spec parse_get_args/1 :: (#mod{}) ->  {string(), list(tuple())}
+%% @spec parse_get_args(#mod{}) ->  {string(), list(tuple())}
 %% @doc Parses GET parameters
 %%
 -spec(parse_get_args/1 :: (#mod{}) ->  {string(), list(tuple())}).
@@ -155,11 +155,11 @@ parse_post_args(Info) ->
 
 
 %%
-%% @spec fetch_boundary(#mod{parsed_header::maybe_improper_list()}) ->
-%%       {'multipart',_} | {'simple',_}
+%% @spec fetch_boundary(#mod{}) ->
+%%       {'multipart',any()} | {'simple', any()}
 %% @doc Checks POST request type and fetches boundary for multipart request
 %%
--spec(fetch_boundary/1 :: (#mod{parsed_header::maybe_improper_list()}) -> {'multipart',_} | {'simple',_}).
+-spec(fetch_boundary/1 :: (#mod{parsed_header::maybe_improper_list()}) -> {'multipart', any()} | {'simple',any()}).
 fetch_boundary(Data) ->
     ContentTypeSearch = lists:keysearch("content-type", 1, Data#mod.parsed_header),
     ContentType = case ContentTypeSearch of

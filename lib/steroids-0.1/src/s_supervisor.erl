@@ -35,7 +35,7 @@
 %%====================================================================
 
 %%
-%% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
+%% @spec start_link(any()) -> {ok,Pid} | ignore | {error,Error}
 %% @doc Starts the supervisor
 %%
 -spec(start_link/1 :: (any()) -> {ok, pid()} | ignore | {error, any()}).

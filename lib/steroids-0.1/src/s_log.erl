@@ -52,7 +52,7 @@
 %%====================================================================
 
 %%
-%% @spec trace(atom(), string(), list()) -> ok | skipped)
+%% @spec trace(atom(), string(), list()) -> ok | skipped
 %% @doc Logs trace message
 %% @equiv s_log:log(trace, Module, Message, Params)
 %% @end
@@ -62,7 +62,7 @@ trace(Module, Message, Params) ->
     log(trace, Module, Message, Params).
 
 %%
-%% @spec debug(atom(), string(), list()) -> ok | skipped)
+%% @spec debug(atom(), string(), list()) -> ok | skipped
 %% @doc Logs debug message
 %% @equiv s_log:log(debug, Module, Message, Params)
 %% @end
@@ -72,7 +72,7 @@ debug(Module, Message, Params) ->
     log(debug, Module, Message, Params).
 
 %%
-%% @spec info(atom(), string(), list()) -> ok | skipped)
+%% @spec info(atom(), string(), list()) -> ok | skipped
 %% @doc Logs info message
 %% @equiv s_log:log(info, Module, Message, Params)
 %% @end
@@ -82,7 +82,7 @@ info(Module, Message, Params) ->
     log(info, Module, Message, Params).
 
 %%
-%% @spec warn(atom(), string(), list()) -> ok | skipped)
+%% @spec warn(atom(), string(), list()) -> ok | skipped
 %% @doc Logs warning message
 %% @equiv s_log:log(warn, Module, Message, Params)
 %% @end
@@ -92,7 +92,7 @@ warn(Module, Message, Params) ->
     log(warn, Module, Message, Params).
 
 %%
-%% @spec error(atom(), string(), list()) -> ok | skipped)
+%% @spec error(atom(), string(), list()) -> ok | skipped
 %% @doc Logs error message
 %% @equiv s_log:log(error, Module, Message, Params)
 %% @end
@@ -102,7 +102,7 @@ error(Module, Message, Params) ->
     log(error, Module, Message, Params).
 
 %%
-%% @spec fatal(atom(), string(), list()) -> ok | skipped)
+%% @spec fatal(atom(), string(), list()) -> ok | skipped
 %% @doc Logs fatal error message
 %% @equiv s_log:log(fatal, Module, Message, Params)
 %% @end

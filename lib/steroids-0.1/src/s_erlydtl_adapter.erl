@@ -60,7 +60,7 @@ render(Path, Params, _) ->
     {ok, s_template:render(Path, Params)}.
 
 %%--------------------------------------------------------------------
-%% @spec set_block(string(), iolist(), _) -> #renderer_params{}
+%% @spec set_block(string(), iolist(), any()) -> #renderer_params{}
 %% @doc Saves block value (in context)
 %% @end
 %%--------------------------------------------------------------------
